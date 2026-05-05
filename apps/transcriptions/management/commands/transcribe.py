@@ -7,20 +7,37 @@ from django.utils import timezone
 from apps.transcriptions.dependencies import get_transcription_service
 from apps.transcriptions.models import JobStatus, TranscriptionJob, TranscriptionResult
 from services.transcription.schemas import TranscriptionRequest
+from services.transcription.youtube import download_youtube_audio
 
 
 class Command(BaseCommand):
-    help = "Transcribe an audio file and save the result to the database"
+    help = "Transcribe an audio file (local or YouTube URL) and save the result to the database"
 
     def add_arguments(self, parser):
-        parser.add_argument("--input", required=True)
+        parser.add_argument("--input", default="")
+        parser.add_argument("--youtube-url", default="")
         parser.add_argument("--lang", default="fr")
         parser.add_argument("--num-speakers", type=int)
         parser.add_argument("--speaker-names", default="")
         parser.add_argument("--model-size", default="medium")
 
     def handle(self, *args, **options):
-        input_path = Path(options["input"]).resolve()
+        # Determine input source
+        input_path = None
+        if options["youtube_url"]:
+            self.stdout.write(f"Downloading from YouTube: {options['youtube_url']}")
+            input_path = download_youtube_audio(options["youtube_url"])
+            self.stdout.write(self.style.SUCCESS(f"✅ Downloaded to: {input_path}"))
+        elif options["input"]:
+            input_path = Path(options["input"]).resolve()
+        else:
+            self.stdout.write(self.style.ERROR("Error: Either --input or --youtube-url is required"))
+            return
+        
+        if not input_path.exists():
+            self.stdout.write(self.style.ERROR(f"Error: Input file not found: {input_path}"))
+            return
+        
         speaker_names = [name.strip() for name in options["speaker_names"].split(",") if name.strip()]
         service = get_transcription_service()
 
