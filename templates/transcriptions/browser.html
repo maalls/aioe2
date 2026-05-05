@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Transcription Viewer{% endblock %}
+
+{% block content %}
+  {% include "components/ui/page_header.html" with eyebrow="Transcription" title="Visualiser une transcription" subtitle="Sélectionne un dossier de sortie pour explorer les segments, les speakers et les exports." %}
+
+  <div class="grid gap-6 lg:grid-cols-[320px_1fr]" x-data="{ loading: false }">
+    <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-card">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Source de données</h2>
+
+      {% if folders %}
+        <form
+          class="mt-4 space-y-3"
+          hx-get="{% url 'transcription-preview' %}"
+          hx-target="#viewer-panel"
+          hx-swap="innerHTML"
+          hx-on::before-request="loading = true"
+          hx-on::after-request="loading = false"
+        >
+          <label for="folder" class="block text-sm font-medium text-slate-700">Dossier output</label>
+          <select
+            id="folder"
+            name="folder"
+            class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent-soft"
+            onchange="this.form.requestSubmit()"
+          >
+            {% for folder in folders %}
+              <option value="{{ folder.name }}" {% if folder.name == selected_folder %}selected{% endif %}>{{ folder.name }}</option>
+            {% endfor %}
+          </select>
+        </form>
+      {% else %}
+        <p class="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Aucun dossier trouvé dans var/output.
+        </p>
+      {% endif %}
+
+      <div class="mt-4" x-show="loading" x-cloak>
+        <p class="text-sm text-brand-slate">Chargement de la transcription...</p>
+      </div>
+    </section>
+
+    <div id="viewer-panel">
+      {% include "transcriptions/_viewer_panel.html" with selected_folder=selected_folder folder_data=folder_data %}
+    </div>
+  </div>
+{% endblock %}

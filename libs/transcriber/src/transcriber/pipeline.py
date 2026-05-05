@@ -8,6 +8,7 @@ from typing import Optional
 
 from . import export, fusion, identity
 from .diarization import diarize
+from .media_assets import generate_preview_assets
 from .preprocess import convert_to_wav, get_duration
 
 logger = logging.getLogger(__name__)
@@ -134,9 +135,24 @@ def run_pipeline(
     run_report = {**{k: v for k, v in result.items() if k != "segments"}, "timings": timings}
 
     # Export
-    export.to_json(result, output_dir / f"{stem}.json")
-    export.to_txt(final_segments, output_dir / f"{stem}.txt")
-    export.to_srt(final_segments, output_dir / f"{stem}.srt")
+    json_output = output_dir / f"{stem}.json"
+    txt_output = output_dir / f"{stem}.txt"
+    srt_output = output_dir / f"{stem}.srt"
+
+    export.to_json(result, json_output)
+    export.to_txt(final_segments, txt_output)
+    export.to_srt(final_segments, srt_output)
+
+    media_assets = generate_preview_assets(
+        output_dir=output_dir,
+        stem=stem,
+        input_audio_path=input_path,
+        srt_path=srt_output,
+    )
+    if media_assets:
+        result["media_assets"] = media_assets
+        run_report["media_assets"] = media_assets
+
     export.to_json(run_report, output_dir / "run_report.json")
 
     logger.info("Done in %.1fs. Output: %s", timings["total_s"], output_dir)

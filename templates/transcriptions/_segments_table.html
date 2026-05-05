@@ -1,0 +1,42 @@
+<section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card" x-data="{ q: '' }">
+  <div class="border-b border-slate-200 p-4">
+    <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Segments</h2>
+      <input
+        type="search"
+        placeholder="Filtrer texte / speaker"
+        x-model="q"
+        class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent-soft sm:max-w-xs"
+      />
+    </div>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-200">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Start</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">End</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Speaker</th>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Texte</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100 bg-white">
+        {% for segment in segments %}
+          <tr
+            x-show="q === '' || '{{ segment.speaker|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase()) || '{{ segment.text|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase())"
+          >
+            <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">{{ segment.start|default:"-" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">{{ segment.end|default:"-" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-xs font-semibold text-brand-accent">{{ segment.speaker|default:"-" }}</td>
+            <td class="px-4 py-3 text-sm leading-6 text-slate-700">{{ segment.text|default:"" }}</td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="4" class="px-4 py-6 text-center text-sm text-slate-500">Aucun segment trouvé.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>

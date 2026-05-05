@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}AIOE{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                ink: "#111827",
+                slate: "#334155",
+                sand: "#f8f5ef",
+                accent: "#0f766e",
+                "accent-soft": "#ccfbf1"
+              }
+            },
+            boxShadow: {
+              card: "0 12px 30px rgba(15, 23, 42, 0.08)"
+            }
+          }
+        }
+      };
+    </script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+      [x-cloak] {
+        display: none !important;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gradient-to-b from-brand-sand to-white text-brand-ink">
+    <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+      {% block content %}{% endblock %}
+    </div>
+  </body>
+</html>
