@@ -33,11 +33,11 @@ class Command(BaseCommand):
         else:
             self.stdout.write(self.style.ERROR("Error: Either --input or --youtube-url is required"))
             return
-        
+
         if not input_path.exists():
             self.stdout.write(self.style.ERROR(f"Error: Input file not found: {input_path}"))
             return
-        
+
         speaker_names = [name.strip() for name in options["speaker_names"].split(",") if name.strip()]
         service = get_transcription_service()
 
