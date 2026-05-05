@@ -173,6 +173,12 @@ def _load_folder_data(folder_name: str) -> dict:
 
     report = _read_json(report_path) if report_path.exists() else {}
     segments = payload.get("segments", [])
+    # Add formatted timestamps to each segment
+    for segment in segments:
+        if "start" in segment:
+            segment["start_pretty"] = _format_timestamp(segment["start"])
+        if "end" in segment:
+            segment["end_pretty"] = _format_timestamp(segment["end"])
     speaker_map = payload.get("speaker_map", {})
 
     txt_files = sorted(folder_path.glob("*.txt"))
@@ -200,6 +206,7 @@ def _load_folder_data(folder_name: str) -> dict:
         "speaker_map": speaker_map,
         "speakers_found": payload.get("speakers_found", 0),
         "audio_duration_s": payload.get("audio_duration_s", 0),
+        "audio_duration_pretty": _pretty_duration(payload.get("audio_duration_s", 0)),
         "timings": report.get("timings", {}),
         "txt_file": txt_files[0].name if txt_files else "",
         "srt_file": srt_files[0].name if srt_files else "",
@@ -210,6 +217,27 @@ def _load_folder_data(folder_name: str) -> dict:
     }
 
 
+def _format_timestamp(seconds: float) -> str:
+    """Convert seconds to MM:SS or H:MM:SS format."""
+    s = int(seconds)
+    h, rem = divmod(s, 3600)
+    m, sec = divmod(rem, 60)
+    if h:
+        return f"{h}:{m:02d}:{sec:02d}"
+    return f"{m}:{sec:02d}"
+
+
+def _pretty_duration(seconds: float) -> str:
+    s = int(seconds)
+    h, rem = divmod(s, 3600)
+    m, sec = divmod(rem, 60)
+    if h:
+        return f"{h}h {m:02d}m {sec:02d}s"
+    if m:
+        return f"{m}m {sec:02d}s"
+    return f"{sec}s"
+
+
 def _empty_folder_data(folder_name: str) -> dict:
     return {
         "folder_name": folder_name,
@@ -217,6 +245,7 @@ def _empty_folder_data(folder_name: str) -> dict:
         "speaker_map": {},
         "speakers_found": 0,
         "audio_duration_s": 0,
+        "audio_duration_pretty": "0s",
         "timings": {},
         "txt_file": "",
         "srt_file": "",

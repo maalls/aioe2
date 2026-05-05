@@ -102,7 +102,7 @@ def _build_preview_video(*, input_audio_path: Path, srt_path: Path, output_path:
         "-i",
         str(input_audio_path),
         "-vf",
-        f"subtitles={subtitles_arg}",
+        f"subtitles={subtitles_arg}:force_style=FontSize=28,Outline=1,Shadow=0",
         "-c:v",
         "libx264",
         "-preset",

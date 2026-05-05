@@ -1,4 +1,4 @@
-<section class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-card" x-data="{ q: '' }">
+<section class="overflow-hidden border border-slate-200 bg-white shadow-card" x-data="{ q: '' }">
   <div class="border-b border-slate-200 p-4">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-500">Segments</h2>
@@ -6,7 +6,7 @@
         type="search"
         placeholder="Filtrer texte / speaker"
         x-model="q"
-        class="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent-soft sm:max-w-xs"
+        class="w-full border border-slate-300 px-3 py-2 text-sm text-slate-800 focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent-soft sm:max-w-xs"
       />
     </div>
   </div>
@@ -25,9 +25,13 @@
         {% for segment in segments %}
           <tr
             x-show="q === '' || '{{ segment.speaker|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase()) || '{{ segment.text|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase())"
+            data-start="{{ segment.start|default:0 }}"
+            data-end="{{ segment.end|default:0 }}"
+            @click="const v = document.getElementById('preview-player'); if(v){ v.currentTime = {{ segment.start|default:0 }}; v.play(); }"
+            class="cursor-pointer hover:bg-slate-50 transition-colors"
           >
-            <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">{{ segment.start|default:"-" }}</td>
-            <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">{{ segment.end|default:"-" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">{{ segment.start_pretty|default:"-" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">{{ segment.end_pretty|default:"-" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-xs font-semibold text-brand-accent">{{ segment.speaker|default:"-" }}</td>
             <td class="px-4 py-3 text-sm leading-6 text-slate-700">{{ segment.text|default:"" }}</td>
           </tr>
@@ -40,3 +44,25 @@
     </table>
   </div>
 </section>
+
+<script>
+(function () {
+  const player = document.getElementById('preview-player');
+  if (!player) return;
+  let lastActiveRow = null;
+  player.addEventListener('timeupdate', () => {
+    const t = player.currentTime;
+    let activeRow = null;
+    document.querySelectorAll('tr[data-start]').forEach(row => {
+      const active = t >= parseFloat(row.dataset.start) && t < parseFloat(row.dataset.end);
+      row.classList.toggle('bg-indigo-50', active);
+      if (active) activeRow = row;
+    });
+    if (activeRow && activeRow !== lastActiveRow) {
+      lastActiveRow = activeRow;
+      // Position le segment visible mais pas sous le player
+      activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  });
+})();
+</script>
