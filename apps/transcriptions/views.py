@@ -1,12 +1,14 @@
 import json
 import mimetypes
 from pathlib import Path
+from urllib.parse import urlencode
 
 from django.conf import settings
 from django.http import FileResponse
 from django.http import Http404
 from django.http import HttpResponse
 from django.shortcuts import render
+from django.urls import reverse
 from rest_framework import generics
 
 from .models import TranscriptionJob
@@ -54,15 +56,20 @@ def transcription_preview(request):
     if not selected_folder:
         raise Http404("Missing folder")
 
+    folders = _list_output_folders()
     folder_data = _load_folder_data(selected_folder)
-    return render(
+    response = render(
         request,
         "transcriptions/_viewer_panel.html",
         {
+            "folders": folders,
             "selected_folder": selected_folder,
             "folder_data": folder_data,
         },
     )
+    query = urlencode({"folder": selected_folder})
+    response["HX-Push-Url"] = f"{reverse('transcription-browser')}?{query}"
+    return response
 
 
 def transcription_asset(request, folder: str, filename: str):
