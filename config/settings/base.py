@@ -105,6 +105,10 @@ TRANSCRIPTION_PIPELINE_FN = env(
     "TRANSCRIPTION_PIPELINE_FN",
     default="transcriber.pipeline.run_pipeline",
 )
+TRANSCRIPTION2_PIPELINE_FN = env(
+    "TRANSCRIPTION2_PIPELINE_FN",
+    default="transcriber.pipeline_v2.run_pipeline_v2",
+)
 TRANSCRIPTION_OUTPUT_ROOT = env(
     "TRANSCRIPTION_OUTPUT_ROOT",
     default=str(BASE_DIR / "var" / "output"),

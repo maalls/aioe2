@@ -187,6 +187,9 @@ def _load_folder_data(folder_name: str) -> dict:
         if "end" in segment:
             segment["end_pretty"] = _format_timestamp(segment["end"])
     speaker_map = payload.get("speaker_map", {})
+    for segment in segments:
+        speaker_id = segment.get("speaker", "")
+        segment["speaker_label"] = speaker_map.get(speaker_id, speaker_id)
 
     txt_files = sorted(folder_path.glob("*.txt"))
     srt_files = sorted(folder_path.glob("*.srt"))

@@ -59,3 +59,47 @@ def transcribe_file(
         word_timestamps=False,
     )
     return " ".join(s.text.strip() for s in segments).strip()
+
+
+def transcribe_file_with_word_timestamps(
+    audio_path: Path,
+    lang: str,
+    model_size: str = "small",
+) -> list[dict]:
+    """Transcribe an audio file and return word-level timestamps when available."""
+    model = _get_model(model_size)
+    segments, _ = model.transcribe(
+        str(audio_path),
+        language=lang,
+        word_timestamps=True,
+    )
+
+    words: list[dict] = []
+    for segment in segments:
+        segment_words = getattr(segment, "words", None) or []
+        if segment_words:
+            for word in segment_words:
+                text = str(getattr(word, "word", "")).strip()
+                if not text:
+                    continue
+                word_start = float(getattr(word, "start", segment.start) or segment.start)
+                word_end = float(getattr(word, "end", segment.end) or segment.end)
+                words.append({
+                    "start": round(word_start, 3),
+                    "end": round(word_end, 3),
+                    "text": text,
+                    "probability": float(getattr(word, "probability", 0.0) or 0.0),
+                })
+            continue
+
+        text = segment.text.strip()
+        if not text:
+            continue
+        words.append({
+            "start": round(float(segment.start), 3),
+            "end": round(float(segment.end), 3),
+            "text": text,
+            "probability": 0.0,
+        })
+
+    return words

@@ -4,6 +4,8 @@ from .models import TranscriptionJob, TranscriptionResult
 
 
 class TranscriptionResultSerializer(serializers.ModelSerializer):
+    segments = serializers.SerializerMethodField()
+
     class Meta:
         model = TranscriptionResult
         fields = (
@@ -15,6 +17,21 @@ class TranscriptionResultSerializer(serializers.ModelSerializer):
             "export_txt",
             "export_srt",
         )
+
+    def get_segments(self, obj: TranscriptionResult) -> list[dict]:
+        speaker_map = obj.speaker_map if isinstance(obj.speaker_map, dict) else {}
+        enriched_segments: list[dict] = []
+        for segment in obj.segments if isinstance(obj.segments, list) else []:
+            if not isinstance(segment, dict):
+                continue
+            speaker_id = str(segment.get("speaker", ""))
+            enriched_segments.append(
+                {
+                    **segment,
+                    "speaker_label": speaker_map.get(speaker_id, speaker_id),
+                }
+            )
+        return enriched_segments
 
 
 class TranscriptionJobCreateSerializer(serializers.ModelSerializer):
