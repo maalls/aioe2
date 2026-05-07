@@ -11,6 +11,7 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from rest_framework import generics
 
@@ -38,6 +39,7 @@ class TranscriptionJobDetailView(generics.RetrieveAPIView):
     serializer_class = TranscriptionJobDetailSerializer
 
 
+@ensure_csrf_cookie
 def transcription_browser(request):
     folders = _list_output_folders()
     selected_folder = request.GET.get("folder") or (folders[0]["name"] if folders else "")
@@ -54,6 +56,7 @@ def transcription_browser(request):
     )
 
 
+@ensure_csrf_cookie
 def transcription_preview(request):
     selected_folder = request.GET.get("folder", "")
     if not selected_folder:
