@@ -1,67 +1,263 @@
 {% if selected_folder %}
   <section class="space-y-0 pt-0">
-
-    <section class="sticky top-0 z-10 bg-white p-5 shadow-card mb-6">
-      <div class="flex items-center justify-between gap-3">
-        <div class="flex items-baseline gap-3">
-          <span class="text-xs text-slate-400">{{ folder_data.speakers_found }} speaker{{ folder_data.speakers_found|pluralize }} · {{ folder_data.audio_duration_pretty }}</span>
+    {% if folder_data.timeline_groups %}
+      <section
+        class="grid grid-cols-1 gap-4 lg:grid-cols-[260px_minmax(0,1fr)] lg:gap-6 lg:overflow-hidden"
+        style="height: calc(100vh - 2rem);"
+      >
+        <div
+          id="timeline-index-pane"
+          class="min-h-0"
+          style="overflow-y: auto; overscroll-behavior: contain; max-height: calc(100vh - 2rem);"
+        >
+          {% include "transcriptions/_timeline_index.html" with folder_data=folder_data %}
         </div>
-        {% if folders %}
-          <form
-            hx-get="{% url 'transcription-preview' %}"
-            hx-target="#viewer-panel"
-            hx-swap="innerHTML"
-            hx-on::before-request="loading = true"
-            hx-on::after-request="loading = false"
-          >
-            <select
-              id="folder"
-              name="folder"
-              class="border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent-soft"
-              onchange="this.form.requestSubmit()"
-            >
-              {% for folder in folders %}
-                <option value="{{ folder.name }}" {% if folder.name == selected_folder %}selected{% endif %}>{{ folder.name }}</option>
-              {% endfor %}
-            </select>
-          </form>
-        {% endif %}
-      </div>
+        <div
+          id="timeline-content-pane"
+          class="min-w-0 min-h-0"
+          style="overflow-y: auto; overscroll-behavior: contain; max-height: calc(100vh - 2rem);"
+        >
+          <section id="timeline-player-sticky" class="sticky top-0 z-20 mt-4 bg-white p-5 shadow-card mb-4">
+            <div class="flex items-center justify-between gap-3">
+              <div class="flex items-baseline gap-3">
+                <span class="text-xs text-slate-400">{{ folder_data.speakers_found }} speaker{{ folder_data.speakers_found|pluralize }} · {{ folder_data.audio_duration_pretty }}</span>
+              </div>
+              {% if folders %}
+                <form
+                  hx-get="{% url 'transcription-preview' %}"
+                  hx-target="#viewer-panel"
+                  hx-swap="innerHTML"
+                  hx-on::before-request="loading = true"
+                  hx-on::after-request="loading = false"
+                >
+                  <select
+                    id="folder"
+                    name="folder"
+                    class="border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent-soft"
+                    onchange="this.form.requestSubmit()"
+                  >
+                    {% for folder in folders %}
+                      <option value="{{ folder.name }}" {% if folder.name == selected_folder %}selected{% endif %}>{{ folder.name }}</option>
+                    {% endfor %}
+                  </select>
+                </form>
+              {% endif %}
+            </div>
 
-      {% if folder_data.preview_video_file %}
-        <div class="mt-4 overflow-hidden">
-          <style>
-            video::cue { font-size: 1.25rem; line-height: 1.4; }
-          </style>
-          <video id="preview-player" controls preload="metadata" class="h-48 w-full bg-black object-contain"
-            @loadedmetadata="$el.currentTime = {{ folder_data.segments.0.start|default:0 }}">
-            <source src="{% url 'transcription-asset' selected_folder folder_data.preview_video_file %}" type="video/mp4">
-            {% if folder_data.preview_vtt_file %}
-              <track
-                src="{% url 'transcription-asset' selected_folder folder_data.preview_vtt_file %}"
-                kind="subtitles"
-                srclang="fr"
-                label="Sous-titres"
-                default
-              >
+            {% if folder_data.preview_video_file %}
+              <div class="mt-4 overflow-hidden">
+                <style>
+                  video::cue { font-size: 1.25rem; line-height: 1.4; }
+                </style>
+                <video id="preview-player" controls preload="metadata" class="h-48 w-full bg-black object-contain"
+                  @loadedmetadata="$el.currentTime = {{ folder_data.segments.0.start|default:0 }}">
+                  <source src="{% url 'transcription-asset' selected_folder folder_data.preview_video_file %}" type="video/mp4">
+                  {% if folder_data.preview_vtt_file %}
+                    <track
+                      src="{% url 'transcription-asset' selected_folder folder_data.preview_vtt_file %}"
+                      kind="subtitles"
+                      srclang="fr"
+                      label="Sous-titres"
+                      default
+                    >
+                  {% endif %}
+                </video>
+              </div>
+              <div class="mt-3">
+                <button
+                  type="button"
+                  class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
+                  data-sync-linked="1"
+                  title="Activer/desactiver la synchro audio-timeline"
+                >
+                  <i class="sync-icon-link fa-solid fa-link text-sm"></i>
+                  <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
+                </button>
+              </div>
+            {% elif folder_data.preview_audio_file %}
+              <div class="mt-4 bg-slate-50 p-4">
+                <audio controls preload="metadata" class="w-full">
+                  <source src="{% url 'transcription-asset' selected_folder folder_data.preview_audio_file %}" type="audio/mpeg">
+                </audio>
+              </div>
+              <div class="mt-3">
+                <button
+                  type="button"
+                  class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
+                  data-sync-linked="1"
+                  title="Activer/desactiver la synchro audio-timeline"
+                >
+                  <i class="sync-icon-link fa-solid fa-link text-sm"></i>
+                  <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
+                </button>
+              </div>
+            {% else %}
+              <p class="mt-3 text-sm text-slate-500">Assets média non disponibles pour ce dossier.</p>
             {% endif %}
-          </video>
-        </div>
-      {% elif folder_data.preview_audio_file %}
-        <div class="mt-4 bg-slate-50 p-4">
-          <audio controls preload="metadata" class="w-full">
-            <source src="{% url 'transcription-asset' selected_folder folder_data.preview_audio_file %}" type="audio/mpeg">
-          </audio>
-        </div>
-      {% else %}
-        <p class="mt-3 text-sm text-slate-500">Assets média non disponibles pour ce dossier.</p>
-      {% endif %}
-    </section>
+          </section>
 
-    {% include "transcriptions/_segments_table.html" with segments=folder_data.segments speaker_map=folder_data.speaker_map %}
+          {% include "transcriptions/_segments_table.html" with segments=folder_data.segments speaker_map=folder_data.speaker_map folder_data=folder_data %}
+        </div>
+      </section>
+    {% else %}
+      <section class="sticky top-0 z-10 mt-4 bg-white p-5 shadow-card mb-6">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex items-baseline gap-3">
+            <span class="text-xs text-slate-400">{{ folder_data.speakers_found }} speaker{{ folder_data.speakers_found|pluralize }} · {{ folder_data.audio_duration_pretty }}</span>
+          </div>
+          {% if folders %}
+            <form
+              hx-get="{% url 'transcription-preview' %}"
+              hx-target="#viewer-panel"
+              hx-swap="innerHTML"
+              hx-on::before-request="loading = true"
+              hx-on::after-request="loading = false"
+            >
+              <select
+                id="folder"
+                name="folder"
+                class="border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent-soft"
+                onchange="this.form.requestSubmit()"
+              >
+                {% for folder in folders %}
+                  <option value="{{ folder.name }}" {% if folder.name == selected_folder %}selected{% endif %}>{{ folder.name }}</option>
+                {% endfor %}
+              </select>
+            </form>
+          {% endif %}
+        </div>
+
+        {% if folder_data.preview_video_file %}
+          <div class="mt-4 overflow-hidden">
+            <style>
+              video::cue { font-size: 1.25rem; line-height: 1.4; }
+            </style>
+            <video id="preview-player" controls preload="metadata" class="h-48 w-full bg-black object-contain"
+              @loadedmetadata="$el.currentTime = {{ folder_data.segments.0.start|default:0 }}">
+              <source src="{% url 'transcription-asset' selected_folder folder_data.preview_video_file %}" type="video/mp4">
+              {% if folder_data.preview_vtt_file %}
+                <track
+                  src="{% url 'transcription-asset' selected_folder folder_data.preview_vtt_file %}"
+                  kind="subtitles"
+                  srclang="fr"
+                  label="Sous-titres"
+                  default
+                >
+              {% endif %}
+            </video>
+          </div>
+            <div class="mt-3">
+              <button
+                type="button"
+                class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
+                data-sync-linked="1"
+                title="Activer/desactiver la synchro audio-timeline"
+              >
+                <i class="sync-icon-link fa-solid fa-link text-sm"></i>
+                <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
+              </button>
+            </div>
+        {% elif folder_data.preview_audio_file %}
+          <div class="mt-4 bg-slate-50 p-4">
+            <audio controls preload="metadata" class="w-full">
+              <source src="{% url 'transcription-asset' selected_folder folder_data.preview_audio_file %}" type="audio/mpeg">
+            </audio>
+          </div>
+            <div class="mt-3">
+              <button
+                type="button"
+                class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
+                data-sync-linked="1"
+                title="Activer/desactiver la synchro audio-timeline"
+              >
+                <i class="sync-icon-link fa-solid fa-link text-sm"></i>
+                <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
+              </button>
+            </div>
+        {% else %}
+          <p class="mt-3 text-sm text-slate-500">Assets média non disponibles pour ce dossier.</p>
+        {% endif %}
+      </section>
+
+      {% include "transcriptions/_segments_table.html" with segments=folder_data.segments speaker_map=folder_data.speaker_map folder_data=folder_data %}
+    {% endif %}
   </section>
 {% else %}
   <section class="bg-white p-5 shadow-card">
     <p class="text-sm text-slate-600">Choisis un dossier pour afficher la transcription.</p>
   </section>
 {% endif %}
+
+<script>
+(function () {
+  const indexPane = document.getElementById('timeline-index-pane');
+  const contentPane = document.getElementById('timeline-content-pane');
+  const stickyPlayer = document.getElementById('timeline-player-sticky');
+  const syncRoot = document.getElementById('timeline-sync-root');
+  const syncButtons = document.querySelectorAll('.sync-toggle');
+
+  function applySyncState(nextLinked) {
+    const nextValue = nextLinked ? '1' : '0';
+    syncButtons.forEach((btn) => {
+      btn.setAttribute('data-sync-linked', nextValue);
+      const linkIcon = btn.querySelector('.sync-icon-link');
+      const unlinkIcon = btn.querySelector('.sync-icon-unlink');
+      const label = btn.querySelector('.sync-label');
+      if (linkIcon) linkIcon.classList.toggle('hidden', !nextLinked);
+      if (unlinkIcon) unlinkIcon.classList.toggle('hidden', nextLinked);
+      if (label) label.textContent = nextLinked ? 'Link' : 'Unlink';
+    });
+
+    if (syncRoot) {
+      syncRoot.setAttribute('data-sync-linked', nextValue);
+      if (!nextLinked) {
+        syncRoot.querySelectorAll('[data-start][data-end]').forEach((el) => {
+          el.classList.remove('bg-indigo-50');
+        });
+      }
+    }
+  }
+
+  syncButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const currentlyLinked = button.getAttribute('data-sync-linked') !== '0';
+      applySyncState(!currentlyLinked);
+    });
+  });
+
+  const autoUnlinkOnUserScroll = () => {
+    const currentlyLinked = syncRoot ? syncRoot.getAttribute('data-sync-linked') !== '0' : true;
+    if (currentlyLinked) {
+      applySyncState(false);
+    }
+  };
+
+  if (contentPane) {
+    contentPane.addEventListener('wheel', autoUnlinkOnUserScroll, { passive: true });
+    contentPane.addEventListener('touchmove', autoUnlinkOnUserScroll, { passive: true });
+  }
+
+  if (!indexPane || !contentPane) return;
+
+  const links = indexPane.querySelectorAll('a[href^="#topic-"]');
+  links.forEach((link) => {
+    link.addEventListener('click', (event) => {
+      const targetSelector = link.getAttribute('href');
+      if (!targetSelector) return;
+      const target = document.querySelector(targetSelector);
+      if (!target) return;
+
+      event.preventDefault();
+      applySyncState(false);
+      const stickyOffset = stickyPlayer ? stickyPlayer.offsetHeight + 12 : 12;
+
+      const targetTopInPane = target.offsetTop - contentPane.offsetTop;
+      const desiredScrollTop = Math.max(0, targetTopInPane - stickyOffset);
+      contentPane.scrollTo({ top: desiredScrollTop, behavior: 'smooth' });
+
+      history.replaceState(null, '', targetSelector);
+    });
+  });
+
+})();
+</script>

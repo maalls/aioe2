@@ -1,0 +1,23 @@
+{% if folder_data.timeline_groups %}
+  <aside class="mt-4 rounded border border-slate-200 bg-white shadow-card p-3">
+    <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Index conversation</h3>
+    <nav class="mt-2 space-y-2">
+      {% for topic in folder_data.timeline_groups %}
+        <div>
+          <a href="#topic-{{ topic.index }}" class="block text-sm font-semibold text-slate-800 hover:text-brand-accent">
+            {{ topic.index }}. {{ topic.title }}
+          </a>
+          {% if topic.sub_topics %}
+            <div class="mt-1 space-y-1">
+              {% for sub in topic.sub_topics %}
+                <a href="#topic-{{ topic.index }}-sub-{{ sub.index }}" class="block text-xs text-slate-600 hover:text-brand-accent">
+                  {{ topic.index }}.{{ sub.index }} {{ sub.title }}
+                </a>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </nav>
+  </aside>
+{% endif %}

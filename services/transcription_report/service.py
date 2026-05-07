@@ -121,6 +121,8 @@ class TranscriptionTimelineService:
         speaker_map: dict[str, str],
     ) -> ChapterAnalysis:
         transcript = _render_segments_for_prompt(segments, self.max_chapter_prompt_chars, speaker_map=speaker_map)
+        observed_start = float(segments[0].get("start", chapter.start) or chapter.start)
+        observed_end = float(segments[-1].get("end", chapter.end) or chapter.end)
 
         system_prompt = (
             "You are a meeting analyst. Analyse a section of a meeting transcript. "
@@ -128,7 +130,8 @@ class TranscriptionTimelineService:
         )
         user_prompt = (
             f"Chapter: \"{chapter.title}\"\n"
-            f"Duration: {_fmt_time(chapter.start)} – {_fmt_time(chapter.end)}\n\n"
+            f"Chapter range seconds: {chapter.start:.2f} - {chapter.end:.2f}\n"
+            f"Observed segment range seconds: {observed_start:.2f} - {observed_end:.2f}\n\n"
             "Analyse this chapter and return JSON with this exact schema:\n"
             "{\n"
             "  \"sub_topics\": [\n"
@@ -143,6 +146,9 @@ class TranscriptionTimelineService:
             "}\n\n"
             "Rules:\n"
             "- sub_topics: major threads discussed in this chapter (1–5 items)\n"
+            "- sub_topics.start/end MUST be absolute seconds from meeting start\n"
+            "- each sub_topic must satisfy chapter.start <= start < end <= chapter.end\n"
+            "- do not output placeholder times like 0.0 unless chapter really starts at 0.0\n"
             "- qa_pairs: explicit questions raised and their answers (may be empty)\n"
             "- decisions: concrete decisions or commitments made (may be empty)\n"
             "- All text in French\n"
@@ -156,7 +162,8 @@ class TranscriptionTimelineService:
         except RuntimeError:
             return ChapterAnalysis()
 
-        return _parse_chapter_analysis(data)
+        analysis = _parse_chapter_analysis(data)
+        return _normalize_chapter_analysis(chapter, analysis)
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -199,11 +206,13 @@ def _parse_chapter_analysis(data: dict[str, Any]) -> ChapterAnalysis:
         if not isinstance(item, dict):
             continue
         try:
+            start = float(item.get("start", 0.0) or 0.0)
+            end = float(item.get("end", 0.0) or 0.0)
             sub_topics.append(SubTopic(
                 title=str(item.get("title", "")).strip() or "Sous-topic",
                 summary=str(item.get("summary", "")).strip(),
-                start=float(item.get("start", 0.0) or 0.0),
-                end=float(item.get("end", 0.0) or 0.0),
+                start=start,
+                end=end,
             ))
         except Exception:  # noqa: BLE001
             continue
@@ -234,6 +243,61 @@ def _parse_chapter_analysis(data: dict[str, Any]) -> ChapterAnalysis:
             ))
 
     return ChapterAnalysis(sub_topics=sub_topics, qa_pairs=qa_pairs, decisions=decisions)
+
+
+def _normalize_chapter_analysis(chapter: TimelineChapter, analysis: ChapterAnalysis) -> ChapterAnalysis:
+    chapter_start = float(chapter.start)
+    chapter_end = float(chapter.end)
+    chapter_duration = max(0.0, chapter_end - chapter_start)
+
+    if not analysis.sub_topics:
+        return analysis
+
+    ordered = sorted(analysis.sub_topics, key=lambda item: item.start)
+
+    # Some models return chapter-relative timestamps (0..chapter_duration). Convert them to absolute.
+    max_end = max((item.end for item in ordered), default=0.0)
+    min_start = min((item.start for item in ordered), default=0.0)
+    use_relative = (
+        chapter_start > 0.0
+        and chapter_duration > 0.0
+        and min_start >= 0.0
+        and max_end <= chapter_duration + 1.0
+    )
+
+    normalized: list[SubTopic] = []
+    for item in ordered:
+        start = float(item.start)
+        end = float(item.end)
+
+        if use_relative:
+            start += chapter_start
+            end += chapter_start
+
+        start = max(chapter_start, min(start, chapter_end))
+        end = max(chapter_start, min(end, chapter_end))
+        if end <= start:
+            continue
+
+        if normalized and start < normalized[-1].end:
+            start = normalized[-1].end
+            if end <= start:
+                continue
+
+        normalized.append(
+            SubTopic(
+                title=item.title,
+                summary=item.summary,
+                start=round(start, 2),
+                end=round(end, 2),
+            )
+        )
+
+    return ChapterAnalysis(
+        sub_topics=normalized,
+        qa_pairs=analysis.qa_pairs,
+        decisions=analysis.decisions,
+    )
 
 
 def _normalize_chapters(

@@ -170,9 +170,15 @@ def _load_folder_data(folder_name: str) -> dict:
 
     folder_path = output_root / folder_name
     json_files = sorted(
-        [file for file in folder_path.glob("*.json") if file.name != "run_report.json"]
+        [
+            file
+            for file in folder_path.glob("*.json")
+            if file.name != "run_report.json"
+            and ".timeline" not in file.name
+        ]
     )
     report_path = folder_path / "run_report.json"
+    timeline_path, timeline_data = _load_timeline_report(folder_path)
 
     payload = {}
     if json_files:
@@ -190,6 +196,8 @@ def _load_folder_data(folder_name: str) -> dict:
     for segment in segments:
         speaker_id = segment.get("speaker", "")
         segment["speaker_label"] = speaker_map.get(speaker_id, speaker_id)
+
+    timeline_groups = _build_timeline_groups(segments, timeline_data)
 
     txt_files = sorted(folder_path.glob("*.txt"))
     srt_files = sorted(folder_path.glob("*.srt"))
@@ -218,6 +226,8 @@ def _load_folder_data(folder_name: str) -> dict:
         "audio_duration_s": payload.get("audio_duration_s", 0),
         "audio_duration_pretty": _pretty_duration(payload.get("audio_duration_s", 0)),
         "timings": report.get("timings", {}),
+        "timeline_file": timeline_path.name if timeline_path else "",
+        "timeline_groups": timeline_groups,
         "txt_file": txt_files[0].name if txt_files else "",
         "srt_file": srt_files[0].name if srt_files else "",
         "preview_audio_file": preview_audio_file,
@@ -225,6 +235,167 @@ def _load_folder_data(folder_name: str) -> dict:
         "preview_vtt_file": preview_vtt_file,
         "segment_count": len(segments),
     }
+
+
+def _load_timeline_report(folder_path: Path) -> tuple[Path | None, dict]:
+    candidates = [
+        *sorted(folder_path.glob("*.timeline.deep.json")),
+        *sorted(folder_path.glob("*.timeline.json")),
+    ]
+    for path in candidates:
+        data = _read_json(path)
+        if isinstance(data, dict) and isinstance(data.get("chapters"), list):
+            return path, data
+    return None, {}
+
+
+def _build_timeline_groups(segments: list[dict], timeline_data: dict) -> list[dict]:
+    chapters = timeline_data.get("chapters") if isinstance(timeline_data, dict) else None
+    if not isinstance(chapters, list) or not chapters:
+        return []
+
+    groups: list[dict] = []
+    assigned_to_topic_ids: set[int] = set()
+    for index, chapter in enumerate(chapters, start=1):
+        if not isinstance(chapter, dict):
+            continue
+
+        chapter_start = float(chapter.get("start", 0.0) or 0.0)
+        chapter_end = float(chapter.get("end", chapter_start) or chapter_start)
+        if chapter_end <= chapter_start:
+            continue
+
+        chapter_segments = [
+            segment
+            for segment in segments
+            if _overlap(
+                float(segment.get("start", 0.0) or 0.0),
+                float(segment.get("end", 0.0) or 0.0),
+                chapter_start,
+                chapter_end,
+            )
+        ]
+        for segment in chapter_segments:
+            assigned_to_topic_ids.add(id(segment))
+
+        analysis = chapter.get("analysis") if isinstance(chapter.get("analysis"), dict) else {}
+        raw_sub_topics = analysis.get("sub_topics") if isinstance(analysis, dict) else []
+        sub_topics: list[dict] = []
+        assigned_ids: set[int] = set()
+
+        for sub_index, sub_topic in enumerate(raw_sub_topics or [], start=1):
+            if not isinstance(sub_topic, dict):
+                continue
+
+            rel_start = float(sub_topic.get("start", 0.0) or 0.0)
+            rel_end = float(sub_topic.get("end", rel_start) or rel_start)
+            if rel_end <= rel_start:
+                continue
+
+            # Accept either absolute timestamps or chapter-relative timestamps.
+            chapter_duration = chapter_end - chapter_start
+            if rel_end <= chapter_duration + 1.0:
+                sub_start = chapter_start + rel_start
+                sub_end = chapter_start + rel_end
+            else:
+                sub_start = rel_start
+                sub_end = rel_end
+
+            if sub_end <= sub_start:
+                continue
+
+            sub_segments = [
+                segment
+                for segment in chapter_segments
+                if _overlap(
+                    float(segment.get("start", 0.0) or 0.0),
+                    float(segment.get("end", 0.0) or 0.0),
+                    sub_start,
+                    sub_end,
+                )
+            ]
+            for segment in sub_segments:
+                assigned_ids.add(id(segment))
+
+            sub_topics.append(
+                {
+                    "index": sub_index,
+                    "title": str(sub_topic.get("title", "Sous-topic")).strip() or "Sous-topic",
+                    "summary": str(sub_topic.get("summary", "")).strip(),
+                    "start": sub_start,
+                    "end": sub_end,
+                    "range_pretty": f"{_format_timestamp(sub_start)} - {_format_timestamp(sub_end)}",
+                    "segments": sub_segments,
+                }
+            )
+
+        other_segments = [segment for segment in chapter_segments if id(segment) not in assigned_ids]
+
+        if sub_topics and other_segments:
+            sub_topics.sort(key=lambda item: item["start"])
+            for segment in other_segments:
+                seg_start = float(segment.get("start", 0.0) or 0.0)
+                seg_end = float(segment.get("end", seg_start) or seg_start)
+                seg_mid = (seg_start + seg_end) / 2.0
+
+                target_sub_topic = sub_topics[0]
+                for sub_topic in sub_topics:
+                    if seg_mid >= sub_topic["start"]:
+                        target_sub_topic = sub_topic
+                    else:
+                        break
+
+                segment["out_of_topic"] = True
+                target_sub_topic["segments"].append(segment)
+
+            other_segments = []
+
+        for sub_topic in sub_topics:
+            sub_topic["segments"].sort(key=lambda item: float(item.get("start", 0.0) or 0.0))
+        other_segments.sort(key=lambda item: float(item.get("start", 0.0) or 0.0))
+
+        groups.append(
+            {
+                "index": index,
+                "title": str(chapter.get("title", "Topic")).strip() or "Topic",
+                "summary": str(chapter.get("summary", "")).strip(),
+                "start": chapter_start,
+                "end": chapter_end,
+                "range_pretty": f"{_format_timestamp(chapter_start)} - {_format_timestamp(chapter_end)}",
+                "sub_topics": sub_topics,
+                "other_segments": other_segments,
+                "segment_count": len(chapter_segments),
+            }
+        )
+
+    # Ensure no segment is lost in grouped display.
+    # Any segment outside all topic ranges is appended to the chronologically current topic.
+    if groups:
+        for segment in segments:
+            if id(segment) in assigned_to_topic_ids:
+                continue
+
+            seg_start = float(segment.get("start", 0.0) or 0.0)
+            target_group = groups[0]
+            for group in groups:
+                if seg_start >= group["start"]:
+                    target_group = group
+                else:
+                    break
+
+            segment["out_of_topic"] = True
+            target_group["other_segments"].append(segment)
+            target_group["segment_count"] += 1
+
+    for segment in segments:
+        if "out_of_topic" not in segment:
+            segment["out_of_topic"] = False
+
+    return groups
+
+
+def _overlap(start_a: float, end_a: float, start_b: float, end_b: float) -> bool:
+    return end_a > start_b and start_a < end_b
 
 
 def _format_timestamp(seconds: float) -> str:
@@ -257,6 +428,8 @@ def _empty_folder_data(folder_name: str) -> dict:
         "audio_duration_s": 0,
         "audio_duration_pretty": "0s",
         "timings": {},
+        "timeline_file": "",
+        "timeline_groups": [],
         "txt_file": "",
         "srt_file": "",
         "preview_audio_file": "",
