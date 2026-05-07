@@ -1,5 +1,6 @@
 import json
 import mimetypes
+import hashlib
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -7,8 +8,10 @@ from django.conf import settings
 from django.http import FileResponse
 from django.http import Http404
 from django.http import HttpResponse
+from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import reverse
+from django.views.decorators.http import require_POST
 from rest_framework import generics
 
 from .models import TranscriptionJob
@@ -99,6 +102,34 @@ def transcription_asset(request, folder: str, filename: str):
     return response
 
 
+@require_POST
+def transcription_bookmark_toggle(request, folder: str):
+    output_root = Path(settings.TRANSCRIPTION_OUTPUT_ROOT)
+    available_folders = {item["name"] for item in _list_output_folders()}
+    if folder not in available_folders:
+        raise Http404("Unknown output folder")
+
+    folder_path = output_root / folder
+    try:
+        payload = json.loads(request.body.decode("utf-8")) if request.body else {}
+    except json.JSONDecodeError:
+        return JsonResponse({"ok": False, "error": "Invalid JSON payload"}, status=400)
+
+    segment_key = str(payload.get("segment_key", "")).strip()
+    if not segment_key:
+        return JsonResponse({"ok": False, "error": "Missing segment_key"}, status=400)
+
+    bookmarked = bool(payload.get("bookmarked", False))
+    bookmarks = _read_segment_bookmarks(folder_path)
+    if bookmarked:
+        bookmarks.add(segment_key)
+    else:
+        bookmarks.discard(segment_key)
+
+    _write_segment_bookmarks(folder_path, bookmarks)
+    return JsonResponse({"ok": True, "segment_key": segment_key, "bookmarked": bookmarked})
+
+
 def _range_response(*, asset_path: Path, content_type: str | None, range_header: str) -> HttpResponse:
     file_size = asset_path.stat().st_size
     start, end = _parse_range_header(range_header=range_header, file_size=file_size)
@@ -179,6 +210,7 @@ def _load_folder_data(folder_name: str) -> dict:
     )
     report_path = folder_path / "run_report.json"
     timeline_path, timeline_data = _load_timeline_report(folder_path)
+    bookmarked_keys = _read_segment_bookmarks(folder_path)
 
     payload = {}
     if json_files:
@@ -188,6 +220,9 @@ def _load_folder_data(folder_name: str) -> dict:
     segments = payload.get("segments", [])
     # Add formatted timestamps to each segment
     for segment in segments:
+        segment_key = _segment_key(segment)
+        segment["segment_key"] = segment_key
+        segment["is_bookmarked"] = segment_key in bookmarked_keys
         if "start" in segment:
             segment["start_pretty"] = _format_timestamp(segment["start"])
         if "end" in segment:
@@ -444,3 +479,36 @@ def _read_json(path: Path) -> dict:
         return json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError):
         return {}
+
+
+def _segment_key(segment: dict) -> str:
+    raw = "|".join(
+        [
+            str(segment.get("start", "")),
+            str(segment.get("end", "")),
+            str(segment.get("speaker", "")),
+            str(segment.get("text", "")),
+        ]
+    )
+    return hashlib.sha1(raw.encode("utf-8")).hexdigest()[:16]
+
+
+def _bookmarks_file_path(folder_path: Path) -> Path:
+    return folder_path / "segment_bookmarks.json"
+
+
+def _read_segment_bookmarks(folder_path: Path) -> set[str]:
+    path = _bookmarks_file_path(folder_path)
+    data = _read_json(path)
+    if not isinstance(data, dict):
+        return set()
+    values = data.get("bookmarked_segment_keys")
+    if not isinstance(values, list):
+        return set()
+    return {str(item).strip() for item in values if str(item).strip()}
+
+
+def _write_segment_bookmarks(folder_path: Path, bookmarks: set[str]) -> None:
+    path = _bookmarks_file_path(folder_path)
+    payload = {"bookmarked_segment_keys": sorted(bookmarks)}
+    path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")

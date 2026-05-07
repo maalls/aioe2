@@ -3,6 +3,7 @@
   class="overflow-hidden bg-white shadow-card"
   x-data="{ q: '' }"
   data-sync-linked="1"
+  data-bookmark-url="{% url 'transcription-bookmark-toggle' folder_data.folder_name %}"
 >
   <div class="border-b border-slate-200 p-4">
     <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -52,9 +53,20 @@
                       x-show="q === '' || '{{ segment.speaker|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase()) || '{{ segment.speaker_label|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase()) || '{{ segment.text|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase())"
                       data-start="{{ segment.start|default:0 }}"
                       data-end="{{ segment.end|default:0 }}"
-                      @click="const r=document.getElementById('timeline-sync-root'); if(!r || r.dataset.syncLinked==='1'){ const v=document.getElementById('preview-player'); if(v){ v.currentTime = {{ segment.start|default:0 }}; v.play(); } }"
+                      data-segment-item="1"
+                      data-segment-bookmarked="{{ segment.is_bookmarked|yesno:'1,0' }}"
+                      @click="const v=document.getElementById('preview-player'); if(v){ v.currentTime = {{ segment.start|default:0 }}; v.play(); }"
                       class="group flex w-full items-start gap-3 rounded px-2 py-2 text-left transition-colors hover:bg-slate-50"
                     >
+                      <span
+                        data-bookmark-toggle
+                        data-segment-key="{{ segment.segment_key }}"
+                        data-bookmarked="{{ segment.is_bookmarked|yesno:'1,0' }}"
+                        class="mt-0.5 shrink-0 cursor-pointer"
+                        title="Bookmark segment"
+                      >
+                        <i class="{% if segment.is_bookmarked %}fa-solid text-amber-500{% else %}fa-regular text-slate-300{% endif %} fa-star text-xs"></i>
+                      </span>
                       <span class="mt-0.5 shrink-0 font-mono text-[11px] {% if segment.out_of_topic %}text-slate-400{% else %}text-slate-500{% endif %}">{{ segment.start_pretty|default:"-" }}</span>
                       <span class="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-600">{{ segment.speaker_label|default:segment.speaker|default:"-" }}</span>
                       <span class="text-sm leading-6 text-slate-700">{{ segment.text|default:"" }}</span>
@@ -73,6 +85,7 @@
       <table class="min-w-full divide-y divide-slate-200">
         <thead class="bg-slate-50">
           <tr>
+            <th class="px-3 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Fav</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Start</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">End</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Speaker</th>
@@ -85,9 +98,22 @@
               x-show="q === '' || '{{ segment.speaker|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase()) || '{{ segment.speaker_label|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase()) || '{{ segment.text|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase())"
               data-start="{{ segment.start|default:0 }}"
               data-end="{{ segment.end|default:0 }}"
-              @click="const r=document.getElementById('timeline-sync-root'); if(!r || r.dataset.syncLinked==='1'){ const v=document.getElementById('preview-player'); if(v){ v.currentTime = {{ segment.start|default:0 }}; v.play(); } }"
+              data-segment-item="1"
+              data-segment-bookmarked="{{ segment.is_bookmarked|yesno:'1,0' }}"
+              @click="const v=document.getElementById('preview-player'); if(v){ v.currentTime = {{ segment.start|default:0 }}; v.play(); }"
               class="cursor-pointer hover:bg-slate-50 transition-colors"
             >
+              <td class="whitespace-nowrap px-3 py-3">
+                <span
+                  data-bookmark-toggle
+                  data-segment-key="{{ segment.segment_key }}"
+                  data-bookmarked="{{ segment.is_bookmarked|yesno:'1,0' }}"
+                  class="cursor-pointer"
+                  title="Bookmark segment"
+                >
+                  <i class="{% if segment.is_bookmarked %}fa-solid text-amber-500{% else %}fa-regular text-slate-300{% endif %} fa-star text-xs"></i>
+                </span>
+              </td>
               <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">{{ segment.start_pretty|default:"-" }}</td>
               <td class="whitespace-nowrap px-4 py-3 font-mono text-xs text-slate-700">{{ segment.end_pretty|default:"-" }}</td>
               <td class="whitespace-nowrap px-4 py-3 text-xs font-semibold text-slate-700">{{ segment.speaker_label|default:segment.speaker|default:"-" }}</td>
@@ -95,7 +121,7 @@
             </tr>
           {% empty %}
             <tr>
-              <td colspan="4" class="px-4 py-6 text-center text-sm text-slate-500">Aucun segment trouve.</td>
+              <td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">Aucun segment trouve.</td>
             </tr>
           {% endfor %}
         </tbody>
@@ -105,6 +131,66 @@
 </section>
 
 <script>
+(function () {
+  const root = document.getElementById('timeline-sync-root');
+  if (!root) return;
+  const bookmarkUrl = root.getAttribute('data-bookmark-url') || '';
+  if (!bookmarkUrl) return;
+
+  function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  function setBookmarkVisual(toggle, bookmarked) {
+    toggle.setAttribute('data-bookmarked', bookmarked ? '1' : '0');
+    const rowItem = toggle.closest('[data-segment-item]');
+    if (rowItem) {
+      rowItem.setAttribute('data-segment-bookmarked', bookmarked ? '1' : '0');
+    }
+    const icon = toggle.querySelector('i');
+    if (!icon) return;
+    icon.classList.toggle('fa-solid', bookmarked);
+    icon.classList.toggle('text-amber-500', bookmarked);
+    icon.classList.toggle('fa-regular', !bookmarked);
+    icon.classList.toggle('text-slate-300', !bookmarked);
+  }
+
+  root.querySelectorAll('[data-bookmark-toggle]').forEach((toggle) => {
+    toggle.addEventListener('click', async (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const segmentKey = toggle.getAttribute('data-segment-key') || '';
+      if (!segmentKey) return;
+
+      const current = toggle.getAttribute('data-bookmarked') === '1';
+      const next = !current;
+      setBookmarkVisual(toggle, next);
+
+      try {
+        const response = await fetch(bookmarkUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+          },
+          body: JSON.stringify({
+            segment_key: segmentKey,
+            bookmarked: next,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      } catch (error) {
+        setBookmarkVisual(toggle, current);
+      }
+    });
+  });
+})();
+
 (function () {
   const player = document.getElementById('preview-player');
   const syncRoot = document.getElementById('timeline-sync-root');

@@ -49,8 +49,14 @@
                 <style>
                   video::cue { font-size: 1.25rem; line-height: 1.4; }
                 </style>
-                <video id="preview-player" controls preload="metadata" class="h-48 w-full bg-black object-contain"
-                  @loadedmetadata="$el.currentTime = {{ folder_data.segments.0.start|default:0 }}">
+                <video
+                  id="preview-player"
+                  controls
+                  preload="metadata"
+                  class="h-48 w-full bg-black object-contain"
+                  data-player-storage-key="transcription-player:{{ selected_folder }}"
+                  data-player-default-start="{{ folder_data.segments.0.start|default:0 }}"
+                >
                   <source src="{% url 'transcription-asset' selected_folder folder_data.preview_video_file %}" type="video/mp4">
                   {% if folder_data.preview_vtt_file %}
                     <track
@@ -64,32 +70,61 @@
                 </video>
               </div>
               <div class="mt-3">
-                <button
-                  type="button"
-                  class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
-                  data-sync-linked="1"
-                  title="Activer/desactiver la synchro audio-timeline"
-                >
-                  <i class="sync-icon-link fa-solid fa-link text-sm"></i>
-                  <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
-                </button>
+                <div class="inline-flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
+                    data-sync-linked="1"
+                    title="Activer/desactiver la synchro audio-timeline"
+                  >
+                    <i class="sync-icon-link fa-solid fa-link text-sm"></i>
+                    <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="star-filter-toggle inline-flex items-center justify-center p-1 text-slate-500 hover:text-amber-500"
+                    data-star-filtered="0"
+                    title="Filtrer les segments bookmarkes"
+                  >
+                    <i class="star-icon-off fa-regular fa-star text-sm"></i>
+                    <i class="star-icon-on fa-solid fa-star hidden text-sm text-amber-500"></i>
+                  </button>
+                </div>
               </div>
             {% elif folder_data.preview_audio_file %}
               <div class="mt-4 bg-slate-50 p-4">
-                <audio controls preload="metadata" class="w-full">
+                <audio
+                  id="preview-player"
+                  controls
+                  preload="metadata"
+                  class="w-full"
+                  data-player-storage-key="transcription-player:{{ selected_folder }}"
+                  data-player-default-start="{{ folder_data.segments.0.start|default:0 }}"
+                >
                   <source src="{% url 'transcription-asset' selected_folder folder_data.preview_audio_file %}" type="audio/mpeg">
                 </audio>
               </div>
               <div class="mt-3">
-                <button
-                  type="button"
-                  class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
-                  data-sync-linked="1"
-                  title="Activer/desactiver la synchro audio-timeline"
-                >
-                  <i class="sync-icon-link fa-solid fa-link text-sm"></i>
-                  <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
-                </button>
+                <div class="inline-flex items-center gap-2">
+                  <button
+                    type="button"
+                    class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
+                    data-sync-linked="1"
+                    title="Activer/desactiver la synchro audio-timeline"
+                  >
+                    <i class="sync-icon-link fa-solid fa-link text-sm"></i>
+                    <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
+                  </button>
+                  <button
+                    type="button"
+                    class="star-filter-toggle inline-flex items-center justify-center p-1 text-slate-500 hover:text-amber-500"
+                    data-star-filtered="0"
+                    title="Filtrer les segments bookmarkes"
+                  >
+                    <i class="star-icon-off fa-regular fa-star text-sm"></i>
+                    <i class="star-icon-on fa-solid fa-star hidden text-sm text-amber-500"></i>
+                  </button>
+                </div>
               </div>
             {% else %}
               <p class="mt-3 text-sm text-slate-500">Assets média non disponibles pour ce dossier.</p>
@@ -132,8 +167,14 @@
             <style>
               video::cue { font-size: 1.25rem; line-height: 1.4; }
             </style>
-            <video id="preview-player" controls preload="metadata" class="h-48 w-full bg-black object-contain"
-              @loadedmetadata="$el.currentTime = {{ folder_data.segments.0.start|default:0 }}">
+            <video
+              id="preview-player"
+              controls
+              preload="metadata"
+              class="h-48 w-full bg-black object-contain"
+              data-player-storage-key="transcription-player:{{ selected_folder }}"
+              data-player-default-start="{{ folder_data.segments.0.start|default:0 }}"
+            >
               <source src="{% url 'transcription-asset' selected_folder folder_data.preview_video_file %}" type="video/mp4">
               {% if folder_data.preview_vtt_file %}
                 <track
@@ -147,32 +188,61 @@
             </video>
           </div>
             <div class="mt-3">
-              <button
-                type="button"
-                class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
-                data-sync-linked="1"
-                title="Activer/desactiver la synchro audio-timeline"
-              >
-                <i class="sync-icon-link fa-solid fa-link text-sm"></i>
-                <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
-              </button>
+              <div class="inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
+                  data-sync-linked="1"
+                  title="Activer/desactiver la synchro audio-timeline"
+                >
+                  <i class="sync-icon-link fa-solid fa-link text-sm"></i>
+                  <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
+                </button>
+                <button
+                  type="button"
+                  class="star-filter-toggle inline-flex items-center justify-center p-1 text-slate-500 hover:text-amber-500"
+                  data-star-filtered="0"
+                  title="Filtrer les segments bookmarkes"
+                >
+                  <i class="star-icon-off fa-regular fa-star text-sm"></i>
+                  <i class="star-icon-on fa-solid fa-star hidden text-sm text-amber-500"></i>
+                </button>
+              </div>
             </div>
         {% elif folder_data.preview_audio_file %}
           <div class="mt-4 bg-slate-50 p-4">
-            <audio controls preload="metadata" class="w-full">
+            <audio
+              id="preview-player"
+              controls
+              preload="metadata"
+              class="w-full"
+              data-player-storage-key="transcription-player:{{ selected_folder }}"
+              data-player-default-start="{{ folder_data.segments.0.start|default:0 }}"
+            >
               <source src="{% url 'transcription-asset' selected_folder folder_data.preview_audio_file %}" type="audio/mpeg">
             </audio>
           </div>
             <div class="mt-3">
-              <button
-                type="button"
-                class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
-                data-sync-linked="1"
-                title="Activer/desactiver la synchro audio-timeline"
-              >
-                <i class="sync-icon-link fa-solid fa-link text-sm"></i>
-                <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
-              </button>
+              <div class="inline-flex items-center gap-2">
+                <button
+                  type="button"
+                  class="sync-toggle inline-flex items-center justify-center p-1 text-slate-700 hover:text-brand-accent"
+                  data-sync-linked="1"
+                  title="Activer/desactiver la synchro audio-timeline"
+                >
+                  <i class="sync-icon-link fa-solid fa-link text-sm"></i>
+                  <i class="sync-icon-unlink fa-solid fa-link-slash hidden text-sm"></i>
+                </button>
+                <button
+                  type="button"
+                  class="star-filter-toggle inline-flex items-center justify-center p-1 text-slate-500 hover:text-amber-500"
+                  data-star-filtered="0"
+                  title="Filtrer les segments bookmarkes"
+                >
+                  <i class="star-icon-off fa-regular fa-star text-sm"></i>
+                  <i class="star-icon-on fa-solid fa-star hidden text-sm text-amber-500"></i>
+                </button>
+              </div>
             </div>
         {% else %}
           <p class="mt-3 text-sm text-slate-500">Assets média non disponibles pour ce dossier.</p>
@@ -190,11 +260,83 @@
 
 <script>
 (function () {
+  const player = document.getElementById('preview-player');
   const indexPane = document.getElementById('timeline-index-pane');
   const contentPane = document.getElementById('timeline-content-pane');
   const stickyPlayer = document.getElementById('timeline-player-sticky');
   const syncRoot = document.getElementById('timeline-sync-root');
   const syncButtons = document.querySelectorAll('.sync-toggle');
+  const starFilterButtons = document.querySelectorAll('.star-filter-toggle');
+
+  const playerStorageKey = player ? (player.getAttribute('data-player-storage-key') || '') : '';
+  const playerDefaultStart = player ? parseFloat(player.getAttribute('data-player-default-start') || '0') : 0;
+  let lastSavedPlayerSecond = -1;
+
+  function readStoredPlayerTime() {
+    if (!playerStorageKey) return null;
+    try {
+      const rawValue = window.localStorage.getItem(playerStorageKey);
+      const parsedValue = rawValue === null ? NaN : parseFloat(rawValue);
+      return Number.isFinite(parsedValue) ? parsedValue : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeStoredPlayerTime(force) {
+    if (!player || !playerStorageKey) return;
+    const nextTime = player.currentTime;
+    if (!Number.isFinite(nextTime)) return;
+
+    const nextSecond = Math.floor(nextTime);
+    if (!force && nextSecond === lastSavedPlayerSecond) {
+      return;
+    }
+
+    lastSavedPlayerSecond = nextSecond;
+
+    try {
+      window.localStorage.setItem(playerStorageKey, String(nextTime));
+    } catch (error) {
+    }
+  }
+
+  function restoreStoredPlayerTime() {
+    if (!player) return;
+
+    const storedTime = readStoredPlayerTime();
+    const duration = Number.isFinite(player.duration) ? player.duration : null;
+    const fallbackTime = Number.isFinite(playerDefaultStart) ? playerDefaultStart : 0;
+    let nextTime = storedTime;
+
+    if (nextTime === null) {
+      nextTime = fallbackTime;
+    }
+
+    if (!Number.isFinite(nextTime) || nextTime < 0) {
+      return;
+    }
+
+    if (duration !== null && duration > 0) {
+      nextTime = Math.min(nextTime, Math.max(0, duration - 0.25));
+    }
+
+    player.currentTime = nextTime;
+    lastSavedPlayerSecond = Math.floor(nextTime);
+  }
+
+  if (player) {
+    if (player.readyState >= 1) {
+      restoreStoredPlayerTime();
+    } else {
+      player.addEventListener('loadedmetadata', restoreStoredPlayerTime, { once: true });
+    }
+
+    player.addEventListener('timeupdate', () => writeStoredPlayerTime(false));
+    player.addEventListener('pause', () => writeStoredPlayerTime(true));
+    player.addEventListener('ended', () => writeStoredPlayerTime(true));
+    window.addEventListener('beforeunload', () => writeStoredPlayerTime(true));
+  }
 
   function applySyncState(nextLinked) {
     const nextValue = nextLinked ? '1' : '0';
@@ -222,6 +364,32 @@
     button.addEventListener('click', () => {
       const currentlyLinked = button.getAttribute('data-sync-linked') !== '0';
       applySyncState(!currentlyLinked);
+    });
+  });
+
+  function applyStarFilterState(nextFiltered) {
+    const nextValue = nextFiltered ? '1' : '0';
+    starFilterButtons.forEach((btn) => {
+      btn.setAttribute('data-star-filtered', nextValue);
+      const iconOff = btn.querySelector('.star-icon-off');
+      const iconOn = btn.querySelector('.star-icon-on');
+      if (iconOff) iconOff.classList.toggle('hidden', nextFiltered);
+      if (iconOn) iconOn.classList.toggle('hidden', !nextFiltered);
+      btn.classList.toggle('text-amber-500', nextFiltered);
+      btn.classList.toggle('text-slate-500', !nextFiltered);
+    });
+
+    if (!syncRoot) return;
+    syncRoot.querySelectorAll('[data-segment-item="1"]').forEach((item) => {
+      const isBookmarked = item.getAttribute('data-segment-bookmarked') === '1';
+      item.classList.toggle('hidden', nextFiltered && !isBookmarked);
+    });
+  }
+
+  starFilterButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const currentlyFiltered = button.getAttribute('data-star-filtered') === '1';
+      applyStarFilterState(!currentlyFiltered);
     });
   });
 
