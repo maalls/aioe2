@@ -113,3 +113,20 @@ TRANSCRIPTION_OUTPUT_ROOT = env(
     "TRANSCRIPTION_OUTPUT_ROOT",
     default=str(BASE_DIR / "var" / "output"),
 )
+
+REPORT_LLM_BASE_URL = env(
+    "REPORT_LLM_BASE_URL",
+    default="",
+)
+REPORT_LLM_MODEL = env(
+    "REPORT_LLM_MODEL",
+    default="",
+)
+REPORT_LLM_API_KEY = env(
+    "REPORT_LLM_API_KEY",
+    default="",
+)
+REPORT_TIMELINE_MAX_PROMPT_CHARS = env.int(
+    "REPORT_TIMELINE_MAX_PROMPT_CHARS",
+    default=70000,
+)
