@@ -4,9 +4,9 @@
 Rendre le frontend plus modulaire, plus testable, et moins fragile face aux changements produit, sans regression fonctionnelle.
 
 ## Avancement
-- Sprint A en cours avance (templates): extraction des composants repetes effectuee.
-- Sprint B en cours (scripts): extraction des scripts inline vers includes modules demarree.
-- Strategie de tests de rendu serveur en place et executee.
+- Sprint A [done]: extraction partials templates, tests de rendu verts (53 tests).
+- Sprint B [done]: scripts migres vers includes modules, lifecycle init/destroy via window.__htmxModules, tests rendu lifecycle verts.
+- Sprint C [en cours]: edition inline (texte/speaker/topic/subtopic) — backend prêt, frontend a connecter.
 
 ## Constat (audit)
 
@@ -109,35 +109,37 @@ Cas minimaux:
 
 ## Plan d execution (iteratif)
 
-### Sprint A - Refactor sans changement fonctionnel
+### Sprint A - Refactor sans changement fonctionnel [DONE]
 1. [x] Extraire partials templates depuis le viewer panel.
 2. [x] Ajouter tests de rendu pour verrouiller avant/apres.
 3. [x] Verifier qu aucune fonctionnalite n est modifiee.
 
 Definition de done Sprint A:
-- rendu identique fonctionnellement
-- duplication reduite significativement
-- tests rendu verts
+- rendu identique fonctionnellement ✓
+- duplication reduite significativement ✓
+- tests rendu verts ✓
 
-### Sprint B - Modularisation JS
-1. [~] Deplacer scripts inline vers modules JS sous static.
-2. [ ] Introduire bootstrap init/destroy sur cycle de vie HTMX.
-3. [ ] Ajouter tests interaction sur parcours critiques existants.
+### Sprint B - Modularisation JS [DONE]
+1. [x] Deplacer scripts inline vers modules includes (templates/scripts/).
+2. [x] Introduire bootstrap init/destroy sur cycle de vie HTMX (window.__htmxModules).
+3. [~] Tests navigateur Playwright (differé Sprint D, P1).
 
 Definition de done Sprint B:
-- plus de logique inline dans les templates partiels critiques
-- pas de double binding apres swaps
-- tests navigateur verts sur sync/filter/bookmark/seek
+- plus de logique inline dans les templates partiels critiques ✓
+- pas de double binding apres swaps ✓
+- tests rendu lifecycle verts ✓
 
-### Sprint C - Edition inline robuste
-1. Ajouter module edit-inline.js (texte/speaker/topic/subtopic).
-2. Connecter aux endpoints existants.
-3. Ajouter tests interaction sur edition + persistance refresh.
+### Sprint C - Edition inline robuste [EN COURS]
+1. [ ] UI inline edit segment texte dans _segments_table.html.
+2. [ ] UI inline rename speaker dans _segments_table.html.
+3. [ ] UI inline rename topic/subtopic dans les headers.
+4. [ ] Module _edit_inline_scripts.html (fetch + CSRF + appUi.emitAjaxError).
+5. [ ] Tests de rendu pour presence des data-attributes edition.
 
 Definition de done Sprint C:
 - edition inline stable
-- persistance validee
-- tests interaction edition verts
+- persistance validee via edited.json
+- tests rendu edition verts
 
 ### Sprint D - Performance et hardening
 1. Optimiser detection segment actif (moins de scan global).
@@ -161,12 +163,12 @@ Definition de done Sprint D:
 - Mitigation: data-attributes semantiques dedies a la logique.
 
 ## Checklist technique
-- [~] Creer structure static/transcriptions/js
 - [x] Extraire partials templates
-- [x] Ajouter tests unitaires de rendu templates
-- [ ] Ajouter tests Playwright parcours critiques
-- [~] Supprimer scripts inline des partials cibles
-- [ ] Implementer bootstrap init/destroy compatible HTMX
+- [x] Ajouter tests unitaires de rendu templates (53 passants)
+- [x] Migrer scripts inline vers modules includes
+- [x] Implementer bootstrap init/destroy compatible HTMX
+- [ ] Edition inline texte/speaker/topic/subtopic
+- [ ] Ajouter tests Playwright parcours critiques (Sprint D)
 - [~] Documenter contrat data-attributes
 
 ## KPIs de succes

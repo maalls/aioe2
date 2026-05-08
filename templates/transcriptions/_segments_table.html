@@ -29,7 +29,26 @@
         <article id="topic-{{ topic.index }}" class="py-4 {% if not forloop.first %}border-t border-slate-200{% endif %}">
           <header class="mb-3 pb-2">
             <div class="mt-1 flex items-start justify-between gap-3">
-              <h3 class="text-base font-semibold text-slate-900">{{ topic.index }}. {{ topic.title }}</h3>
+              <h3
+                x-data="{ editing: false, saving: false, val: '{{ topic.title|escapejs }}', snap: '{{ topic.title|escapejs }}', url: '{% url 'transcription-edit-topic-rename' folder_data.folder_name topic.index %}' }"
+                class="text-base font-semibold text-slate-900"
+              >
+                <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.topicInp.focus())" class="cursor-text" title="Double-clic pour renommer">
+                  <span x-text="'{{ topic.index }}. ' + val"></span>
+                  <i class="fa-regular fa-pen-to-square ml-1 text-[10px] text-slate-300 hover:text-slate-500 transition-colors"></i>
+                </span>
+                <input
+                  x-ref="topicInp"
+                  x-show="editing"
+                  x-model="val"
+                  type="text"
+                  @click.stop
+                  @keydown.enter.prevent="if (saving) return; saving = true; window.appEdits && window.appEdits.saveTopic(url, val).then(() => snap = val).catch(() => {}).finally(() => { editing = false; saving = false; })"
+                  @keydown.escape.stop="val = snap; editing = false"
+                  @blur="if (!editing || saving) return; saving = true; window.appEdits && window.appEdits.saveTopic(url, val).then(() => snap = val).catch(() => {}).finally(() => { editing = false; saving = false; })"
+                  class="border border-indigo-300 rounded px-2 py-0.5 text-base font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full max-w-md"
+                />
+              </h3>
               <p class="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ topic.range_pretty }}</p>
             </div>
             {% if topic.summary %}
@@ -41,7 +60,28 @@
             {% for sub in topic.sub_topics %}
               <section id="topic-{{ topic.index }}-sub-{{ sub.index }}" class="py-2">
                 <div class="flex items-start justify-between gap-3">
-                  <h4 class="text-sm font-semibold text-slate-800">{{ topic.index }}.{{ sub.index }} {{ sub.title }}</h4>
+                  {% with sub_idx=sub.index|stringformat:"d" %}{% with subtopic_id=topic.index|stringformat:"d"|add:"."|add:sub_idx %}
+                  <h4
+                    x-data="{ editing: false, saving: false, val: '{{ sub.title|escapejs }}', snap: '{{ sub.title|escapejs }}', url: '{% url 'transcription-edit-subtopic-rename' folder_data.folder_name subtopic_id %}' }"
+                    class="text-sm font-semibold text-slate-800"
+                  >
+                    <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.subInp.focus())" class="cursor-text" title="Double-clic pour renommer">
+                      <span x-text="'{{ topic.index }}.{{ sub.index }} ' + val"></span>
+                      <i class="fa-regular fa-pen-to-square ml-1 text-[10px] text-slate-300 hover:text-slate-500 transition-colors"></i>
+                    </span>
+                    <input
+                      x-ref="subInp"
+                      x-show="editing"
+                      x-model="val"
+                      type="text"
+                      @click.stop
+                      @keydown.enter.prevent="if (saving) return; saving = true; window.appEdits && window.appEdits.saveSubtopic(url, val).then(() => snap = val).catch(() => {}).finally(() => { editing = false; saving = false; })"
+                      @keydown.escape.stop="val = snap; editing = false"
+                      @blur="if (!editing || saving) return; saving = true; window.appEdits && window.appEdits.saveSubtopic(url, val).then(() => snap = val).catch(() => {}).finally(() => { editing = false; saving = false; })"
+                      class="border border-indigo-300 rounded px-1.5 py-0.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-200 w-full max-w-sm"
+                    />
+                  </h4>
+                  {% endwith %}{% endwith %}
                   <p class="shrink-0 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{{ sub.range_pretty }}</p>
                 </div>
                 {% if sub.summary %}
@@ -69,8 +109,48 @@
                         <i class="{% if segment.is_bookmarked %}fa-solid text-amber-500{% else %}fa-regular text-slate-300{% endif %} fa-star text-xs"></i>
                       </span>
                       <span class="mt-0.5 shrink-0 font-mono text-[11px] {% if segment.out_of_topic %}text-slate-400{% else %}text-slate-500{% endif %}">{{ segment.start_pretty|default:"-" }}</span>
-                      <span class="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-600">{{ segment.speaker_label|default:segment.speaker|default:"-" }}</span>
-                      <span class="text-sm leading-6 text-slate-700">{{ segment.text|default:"" }}</span>
+                      <span
+                        x-data="{ editing: false, saving: false, val: '{{ segment.speaker_label|default:segment.speaker|default:"-"|escapejs }}', snap: '{{ segment.speaker_label|default:segment.speaker|default:"-"|escapejs }}', url: '{% url 'transcription-edit-speaker-rename' folder_data.folder_name segment.speaker %}' }"
+                        class="shrink-0 text-[11px] font-semibold uppercase tracking-wide text-slate-600"
+                        @click.stop
+                        title="Double-clic pour renommer le speaker"
+                      >
+                        <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.spkInp.focus())" class="cursor-text">
+                          <span x-text="val"></span>
+                          <i class="fa-regular fa-pen-to-square ml-0.5 text-[9px] text-slate-300 hover:text-slate-500 transition-colors"></i>
+                        </span>
+                        <input
+                          x-ref="spkInp"
+                          x-show="editing"
+                          x-model="val"
+                          type="text"
+                          @keydown.enter.prevent="if (saving) return; saving = true; window.appEdits && window.appEdits.saveSpeaker(url, val).then(() => snap = val).catch(() => {}).finally(() => { editing = false; saving = false; })"
+                          @keydown.escape.stop="val = snap; editing = false"
+                          @blur="if (!editing || saving) return; saving = true; window.appEdits && window.appEdits.saveSpeaker(url, val).then(() => snap = val).catch(() => {}).finally(() => { editing = false; saving = false; })"
+                          class="w-24 border border-indigo-300 rounded px-1 py-0 text-[11px] uppercase tracking-wide focus:outline-none focus:ring-1 focus:ring-indigo-200"
+                        />
+                      </span>
+                      <span
+                        x-data="{ editing: false, saving: false, val: '{{ segment.text|default:""|escapejs }}', snap: '{{ segment.text|default:""|escapejs }}', url: '{% url 'transcription-edit-segment-text' folder_data.folder_name segment.segment_key %}' }"
+                        class="flex-1 min-w-0 text-sm leading-6 text-slate-700"
+                        @click.stop
+                        title="Double-clic pour editer le texte"
+                      >
+                        <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.txtInp.focus())" class="cursor-text">
+                          <span x-text="val"></span>
+                          <i class="fa-regular fa-pen-to-square ml-0.5 text-[9px] text-slate-300 hover:text-slate-500 transition-colors"></i>
+                        </span>
+                        <textarea
+                          x-ref="txtInp"
+                          x-show="editing"
+                          x-model="val"
+                          rows="2"
+                          @keydown.enter.prevent="if (saving) return; saving = true; window.appEdits && window.appEdits.saveSegmentText(url, val).then(() => snap = val).catch(() => {}).finally(() => { editing = false; saving = false; })"
+                          @keydown.escape.stop="val = snap; editing = false"
+                          @blur="if (!editing || saving) return; saving = true; window.appEdits && window.appEdits.saveSegmentText(url, val).then(() => snap = val).catch(() => {}).finally(() => { editing = false; saving = false; })"
+                          class="w-full border border-indigo-300 rounded px-2 py-1 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-indigo-200"
+                        ></textarea>
+                      </span>
                     </button>
                   {% endfor %}
                 </div>
@@ -132,3 +212,4 @@
 </section>
 
 {% include "transcriptions/scripts/_segments_table_scripts.html" %}
+{% include "transcriptions/scripts/_edit_inline_scripts.html" %}

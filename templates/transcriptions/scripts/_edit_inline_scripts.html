@@ -1,0 +1,51 @@
+<script data-module="edit-inline-interactions">
+(function () {
+  // Destroy previous instance to prevent re-registration on HTMX swaps.
+  const _modules = window.__htmxModules = window.__htmxModules || {};
+  if (_modules['edit-inline-interactions']) {
+    _modules['edit-inline-interactions'].destroy();
+    delete _modules['edit-inline-interactions'];
+  }
+  _modules['edit-inline-interactions'] = { destroy: function () {} };
+
+  function getCsrfToken() {
+    const el = document.querySelector('[data-csrf-token]');
+    const val = el ? (el.value || '').trim() : '';
+    if (val && val !== 'NOTPROVIDED') return val;
+    const match = document.cookie.match(/(?:^|; )csrftoken=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  async function saveField(url, fieldName, value) {
+    const body = {};
+    body[fieldName] = value;
+    const response = await fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      let message = `Erreur sauvegarde (HTTP ${response.status})`;
+      if (window.appUi && typeof window.appUi.buildAjaxErrorMessage === 'function') {
+        message = await window.appUi.buildAjaxErrorMessage(response, 'Impossible de sauvegarder');
+      }
+      if (window.appUi && typeof window.appUi.emitAjaxError === 'function') {
+        window.appUi.emitAjaxError(message);
+      }
+      throw new Error(message);
+    }
+    return response.json();
+  }
+
+  window.appEdits = {
+    saveSegmentText: function (url, text)  { return saveField(url, 'text',  text);  },
+    saveSpeaker:     function (url, label) { return saveField(url, 'label', label); },
+    saveTopic:       function (url, title) { return saveField(url, 'title', title); },
+    saveSubtopic:    function (url, title) { return saveField(url, 'title', title); },
+  };
+})();
+</script>
