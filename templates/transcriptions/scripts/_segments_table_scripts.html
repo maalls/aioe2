@@ -92,8 +92,8 @@
 (function () {
   const player = document.getElementById('preview-player');
   const syncRoot = document.getElementById('timeline-sync-root');
-  const root = syncRoot || document;
-  if (!player) return;
+  if (!player || !syncRoot) return;
+  const root = syncRoot;
   const container = document.getElementById('timeline-content-pane') || document.scrollingElement;
   let lastActiveEl = null;
 
@@ -181,6 +181,10 @@
     }
 
     const t = player.currentTime;
+    if (!Number.isFinite(t)) {
+      clearActive();
+      return;
+    }
     const nextIndex = findActiveIndexAt(t);
 
     if (nextIndex !== activeIndex) {

@@ -7,13 +7,14 @@
     delete _modules['viewer-panel-interactions'];
   }
 
-  const player = document.getElementById('preview-player');
-  const indexPane = document.getElementById('timeline-index-pane');
-  const contentPane = document.getElementById('timeline-content-pane');
-  const stickyPlayer = document.getElementById('timeline-player-sticky');
-  const syncRoot = document.getElementById('timeline-sync-root');
-  const syncButtons = document.querySelectorAll('.sync-toggle');
-  const starFilterButtons = document.querySelectorAll('.star-filter-toggle');
+  const panelRoot = document.getElementById('viewer-panel') || document;
+  const player = panelRoot.querySelector('#preview-player') || document.getElementById('preview-player');
+  const indexPane = panelRoot.querySelector('#timeline-index-pane') || document.getElementById('timeline-index-pane');
+  const contentPane = panelRoot.querySelector('#timeline-content-pane') || document.getElementById('timeline-content-pane');
+  const stickyPlayer = panelRoot.querySelector('#timeline-player-sticky') || document.getElementById('timeline-player-sticky');
+  const syncRoot = panelRoot.querySelector('#timeline-sync-root') || document.getElementById('timeline-sync-root');
+  const syncButtons = panelRoot.querySelectorAll('.sync-toggle');
+  const starFilterButtons = panelRoot.querySelectorAll('.star-filter-toggle');
 
   const playerStorageKey = player ? (player.getAttribute('data-player-storage-key') || '') : '';
   const playerDefaultStart = player ? parseFloat(player.getAttribute('data-player-default-start') || '0') : 0;
@@ -167,7 +168,9 @@
     link.addEventListener('click', (event) => {
       const targetSelector = link.getAttribute('href');
       if (!targetSelector) return;
-      const target = document.querySelector(targetSelector);
+      const target = (contentPane && typeof contentPane.querySelector === 'function')
+        ? contentPane.querySelector(targetSelector)
+        : document.querySelector(targetSelector);
       if (!target) return;
 
       event.preventDefault();
@@ -178,7 +181,9 @@
       const desiredScrollTop = Math.max(0, targetTopInPane - stickyOffset);
       contentPane.scrollTo({ top: desiredScrollTop, behavior: 'smooth' });
 
-      history.replaceState(null, '', targetSelector);
+      if (typeof history !== 'undefined' && typeof history.replaceState === 'function') {
+        history.replaceState(null, '', targetSelector);
+      }
     });
   });
 })();
