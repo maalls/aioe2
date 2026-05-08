@@ -166,14 +166,14 @@ Definition de done Sprint D:
 
 ## Checklist technique
 - [x] Extraire partials templates
-- [x] Ajouter tests unitaires de rendu templates (70 passants)
+- [x] Ajouter tests unitaires de rendu templates (74 passants)
 - [x] Migrer scripts inline vers modules includes
 - [x] Implementer bootstrap init/destroy compatible HTMX
 - [x] Edition inline texte/speaker/topic/subtopic
 - [x] Supprimer fallback table legacy de _segments_table.html
 - [x] Ajouter guards DOM explicites sur scripts critiques
 - [ ] Ajouter tests Playwright parcours critiques (Sprint D)
-- [~] Documenter contrat data-attributes
+- [x] Documenter contrat data-attributes (tests de contrat data-* sur _segments_table)
 
 ## KPIs de succes
 - Diminution des lignes dupliquees dans le viewer panel.
