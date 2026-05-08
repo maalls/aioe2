@@ -104,7 +104,7 @@ def test_inline_segment_text_edit_persists_after_reload(live_server, browser_pag
     browser_page.goto(f"{live_server.url}/transcription/?folder={folder}", wait_until="domcontentloaded")
 
     editor_root = browser_page.locator("[title='Double-clic pour editer le texte']").first
-    editor_root.locator(".cursor-text").first.dblclick()
+    editor_root.locator(".cursor-pointer").first.dblclick()
 
     textarea = editor_root.locator("textarea")
     textarea.fill(new_text)

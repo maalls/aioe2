@@ -181,7 +181,29 @@
 
     const containerRect = container.getBoundingClientRect();
     const elRect = el.getBoundingClientRect();
-    const delta = elRect.top - containerRect.top - container.clientHeight / 2 + elRect.height / 2;
+    const stickyPanel = document.getElementById('timeline-player-sticky');
+    let stickyOffset = 0;
+    if (stickyPanel) {
+      const stickyRect = stickyPanel.getBoundingClientRect();
+      const intersectsContainer = stickyRect.bottom > containerRect.top && stickyRect.top < containerRect.bottom;
+      if (intersectsContainer) {
+        stickyOffset = Math.max(0, Math.min(stickyRect.height, stickyRect.bottom - containerRect.top));
+      }
+    }
+
+    const padding = 12;
+    const visibleTop = containerRect.top + stickyOffset + padding;
+    const visibleBottom = containerRect.bottom - padding;
+
+    // Keep active segment fully visible in the pane area not occluded by sticky player.
+    if (elRect.top >= visibleTop && elRect.bottom <= visibleBottom) {
+      return;
+    }
+
+    const delta = elRect.top < visibleTop
+      ? (elRect.top - visibleTop)
+      : (elRect.bottom - visibleBottom);
+
     container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' });
   }
 
