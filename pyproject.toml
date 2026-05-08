@@ -27,6 +27,9 @@ dev = [
     "factory-boy>=3.3",
     "ruff",
 ]
+browser = [
+    "playwright>=1.54",
+]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings.dev"
