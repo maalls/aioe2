@@ -1,3 +1,15 @@
+{{#
+  Module : segments-table-interactions
+  Inclus dans : _segments_table.html
+  Responsabilité :
+    - toggle bookmark segment (fetch POST → data-bookmarked, icône étoile)
+    - highlighting du segment actif synchronisé au player (binary search + scan incrémental)
+  Cycle de vie : s'enregistre dans window.__htmxModules['segments-table-interactions'].
+                 destroy() est un no-op (listeners attachés au root, retiré avec le DOM au swap).
+  Data-attributes lus  : data-bookmark-url, data-bookmark-toggle, data-segment-key,
+                         data-bookmarked, data-start, data-end
+  Data-attributes écrits : data-bookmarked (0/1), data-active (présence/absence)
+#}}
 <script data-module="segments-table-interactions">
 (function () {
   // Destroy previous instance for consistent HTMX swap hygiene.

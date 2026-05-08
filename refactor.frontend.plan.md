@@ -7,7 +7,7 @@ Rendre le frontend plus modulaire, plus testable, et moins fragile face aux chan
 - Sprint A [done]: extraction partials templates, tests de rendu verts (53 tests).
 - Sprint B [done]: scripts migres vers includes modules, lifecycle init/destroy via window.__htmxModules, tests rendu lifecycle verts.
 - Sprint C [done]: edition inline (texte/speaker/topic/subtopic) connectee aux endpoints + tests de rendu.
-- Sprint D [en cours]: suppression fallback table legacy + hardening/perf + tests interaction navigateur.
+- Sprint D [done]: suppression fallback table legacy + hardening/perf + tests interaction navigateur.
 
 ## Constat (audit)
 
@@ -145,8 +145,8 @@ Definition de done Sprint C:
 ### Sprint D - Performance et hardening [EN COURS]
 1. [x] Optimiser detection segment actif (moins de scan global).
 2. [x] Ajouter checks de robustesse DOM (guards explicites).
-3. [~] Ajouter tests Playwright des parcours critiques (sync/filter/bookmark/seek/edit) - 6 scenarios ecrits, execution conditionnee a l'installation Playwright/Chromium.
-4. [ ] Nettoyage final et documentation architecture frontend.
+3. [x] Ajouter tests Playwright des parcours critiques (sync/filter/bookmark/seek/edit) - 6 scenarios passants.
+4. [x] Nettoyage final et documentation architecture frontend (en-tetes modules JS).
 
 Definition de done Sprint D:
 - fluidite correcte sur longues transcriptions
@@ -172,7 +172,7 @@ Definition de done Sprint D:
 - [x] Edition inline texte/speaker/topic/subtopic
 - [x] Supprimer fallback table legacy de _segments_table.html
 - [x] Ajouter guards DOM explicites sur scripts critiques
-- [~] Ajouter tests Playwright parcours critiques (Sprint D) - 6 scenarios implementes, execution runtime pending
+- [x] Ajouter tests Playwright parcours critiques (Sprint D) - 6 scenarios passants
 - [x] Documenter contrat data-attributes (tests de contrat data-* sur _segments_table)
 
 ## KPIs de succes

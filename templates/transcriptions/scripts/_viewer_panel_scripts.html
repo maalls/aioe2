@@ -1,3 +1,16 @@
+{{#
+  Module : viewer-panel-interactions
+  Inclus dans : _viewer_panel.html
+  Responsabilité :
+    - persistance localStorage position/volume du player
+    - toggle sync timeline (data-sync-linked sur #timeline-sync-root)
+    - toggle filtre étoile (masquage segments non bookmarkés)
+    - scroll de l'index vers le segment actif
+  Cycle de vie : s'enregistre dans window.__htmxModules['viewer-panel-interactions'].
+                 destroy() retire les listeners beforeunload et timeupdate.
+                 Appelé automatiquement au prochain swap HTMX.
+  Data-attributes lus : data-sync-linked, data-segment-bookmarked, data-start, data-end
+#}}
 <script data-module="viewer-panel-interactions">
 (function () {
   // Destroy previous instance to prevent listener accumulation on HTMX swaps.

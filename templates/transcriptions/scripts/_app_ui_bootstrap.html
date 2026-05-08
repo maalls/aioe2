@@ -1,3 +1,12 @@
+{{#
+  Module : app-ui-bootstrap
+  Inclus dans : browser.html (une seule fois, hors zone HTMX)
+  Expose      : window.appUi
+    .emitAjaxError(message)                      → void  (déclenche app:ajax-error)
+    .buildAjaxErrorMessage(response, baseMessage) → Promise<string>
+  Cycle de vie : pas de destroy (non swappé par HTMX).
+                 L'objet window.appUi est persistant pour toute la session.
+#}}
 <script data-module="app-ui-bootstrap">
 (function () {
   const appUi = (window.appUi = window.appUi || {});

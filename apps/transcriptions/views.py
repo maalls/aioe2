@@ -666,6 +666,7 @@ def _load_source_payload(folder_path: Path) -> dict:
             for file in folder_path.glob("*.json")
             if file.name not in {"run_report.json", "edited.json", "segment_edits_history.json"}
             and ".timeline" not in file.name
+            and "_bookmarks" not in file.name
         ]
     )
     return _read_json(json_files[0]) if json_files else {}

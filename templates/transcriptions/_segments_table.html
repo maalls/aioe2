@@ -91,11 +91,11 @@
                     <button
                       type="button"
                       x-show="q === '' || '{{ segment.speaker|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase()) || '{{ segment.speaker_label|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase()) || '{{ segment.text|default:""|escapejs }}'.toLowerCase().includes(q.toLowerCase())"
-                      data-start="{{ segment.start|default:0 }}"
-                      data-end="{{ segment.end|default:0 }}"
+                      data-start="{{ segment.start|default:0|stringformat:'g' }}"
+                      data-end="{{ segment.end|default:0|stringformat:'g' }}"
                       data-segment-item="1"
                       data-segment-bookmarked="{{ segment.is_bookmarked|yesno:'1,0' }}"
-                      @click="const v=document.getElementById('preview-player'); if(v){ v.currentTime = {{ segment.start|default:0 }}; v.play(); }"
+                      @click="const v=document.getElementById('preview-player'); if(v){ v.currentTime = {{ segment.start|default:0|stringformat:'g' }}; v.play(); }"
                       class="group flex w-full items-start gap-3 rounded px-2 py-2 text-left transition-colors hover:bg-slate-50"
                     >
                       <span

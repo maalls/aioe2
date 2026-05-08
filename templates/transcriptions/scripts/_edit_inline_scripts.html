@@ -1,3 +1,15 @@
+{{#
+  Module : edit-inline-interactions
+  Inclus dans : _segments_table.html
+  Expose      : window.appEdits
+    .saveSegmentText(url, text)  → Promise
+    .saveSpeaker(url, name)      → Promise
+    .saveTopic(url, title)       → Promise
+    .saveSubtopic(url, title)    → Promise
+  Cycle de vie : s'enregistre dans window.__htmxModules['edit-inline-interactions'].
+                 destroy() supprime window.appEdits.
+                 Appelé automatiquement au prochain swap HTMX.
+#}}
 <script data-module="edit-inline-interactions">
 (function () {
   // Destroy previous instance to prevent re-registration on HTMX swaps.
