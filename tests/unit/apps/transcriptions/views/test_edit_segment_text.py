@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from django.test import Client
 from django.test.utils import override_settings
@@ -37,3 +39,14 @@ def test_updates_segment_text_and_persists_edited_json(output_root, folder_name,
 
     assert response.status_code == 200
     assert (folder_path / "edited.json").exists()
+
+    edited = json.loads((folder_path / "edited.json").read_text(encoding="utf-8"))
+    assert edited["segments"][0]["text"] == "Bonjour corrige"
+
+    history_path = folder_path / "segment_edits_history.json"
+    assert history_path.exists()
+    history = json.loads(history_path.read_text(encoding="utf-8"))
+    assert len(history) == 1
+    assert history[0]["type"] == "edit_segment_text"
+    assert history[0]["after"]["segment_key"] == seg_key
+    assert history[0]["after"]["text"] == "Bonjour corrige"

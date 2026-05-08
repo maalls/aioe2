@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from django.test import Client
 from django.test.utils import override_settings
@@ -27,3 +29,12 @@ def test_renames_speaker_globally(output_root, folder_name, folder_path, sample_
         )
 
     assert response.status_code == 200
+
+    edited = json.loads((folder_path / "edited.json").read_text(encoding="utf-8"))
+    assert edited["speaker_map"]["SPEAKER_00"] == "Alison"
+
+    history = json.loads((folder_path / "segment_edits_history.json").read_text(encoding="utf-8"))
+    assert len(history) == 1
+    assert history[0]["type"] == "rename_speaker"
+    assert history[0]["after"]["speaker_id"] == "SPEAKER_00"
+    assert history[0]["after"]["label"] == "Alison"

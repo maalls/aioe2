@@ -1,3 +1,5 @@
+import json
+
 import pytest
 from django.test import Client
 from django.test.utils import override_settings
@@ -27,3 +29,12 @@ def test_renames_subtopic_title(output_root, folder_name, folder_path, sample_se
         )
 
     assert response.status_code == 200
+
+    edited = json.loads((folder_path / "edited.json").read_text(encoding="utf-8"))
+    assert edited["chapters"][0]["analysis"]["sub_topics"][0]["title"] == "Nouveau sous-topic"
+
+    history = json.loads((folder_path / "segment_edits_history.json").read_text(encoding="utf-8"))
+    assert len(history) == 1
+    assert history[0]["type"] == "rename_subtopic"
+    assert history[0]["after"]["subtopic_id"] == "1.1"
+    assert history[0]["after"]["title"] == "Nouveau sous-topic"
