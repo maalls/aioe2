@@ -1,0 +1,19 @@
+<form
+  data-component="folder-selector"
+  hx-get="{% url 'transcription-preview' %}"
+  hx-target="#viewer-panel"
+  hx-swap="innerHTML"
+  hx-on::before-request="loading = true"
+  hx-on::after-request="loading = false"
+>
+  <select
+    id="folder"
+    name="folder"
+    class="border border-slate-300 bg-white px-2 py-1 text-xs text-slate-800 focus:border-brand-accent focus:outline-none focus:ring-2 focus:ring-brand-accent-soft"
+    onchange="this.form.requestSubmit()"
+  >
+    {% for folder in folders %}
+      <option value="{{ folder.name }}" {% if folder.name == selected_folder %}selected{% endif %}>{{ folder.name }}</option>
+    {% endfor %}
+  </select>
+</form>

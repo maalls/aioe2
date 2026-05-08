@@ -1,0 +1,185 @@
+<script data-module="viewer-panel-interactions">
+(function () {
+  // Destroy previous instance to prevent listener accumulation on HTMX swaps.
+  const _modules = window.__htmxModules = window.__htmxModules || {};
+  if (_modules['viewer-panel-interactions']) {
+    _modules['viewer-panel-interactions'].destroy();
+    delete _modules['viewer-panel-interactions'];
+  }
+
+  const player = document.getElementById('preview-player');
+  const indexPane = document.getElementById('timeline-index-pane');
+  const contentPane = document.getElementById('timeline-content-pane');
+  const stickyPlayer = document.getElementById('timeline-player-sticky');
+  const syncRoot = document.getElementById('timeline-sync-root');
+  const syncButtons = document.querySelectorAll('.sync-toggle');
+  const starFilterButtons = document.querySelectorAll('.star-filter-toggle');
+
+  const playerStorageKey = player ? (player.getAttribute('data-player-storage-key') || '') : '';
+  const playerDefaultStart = player ? parseFloat(player.getAttribute('data-player-default-start') || '0') : 0;
+  let lastSavedPlayerSecond = -1;
+
+  function readStoredPlayerTime() {
+    if (!playerStorageKey) return null;
+    try {
+      const rawValue = window.localStorage.getItem(playerStorageKey);
+      const parsedValue = rawValue === null ? NaN : parseFloat(rawValue);
+      return Number.isFinite(parsedValue) ? parsedValue : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeStoredPlayerTime(force) {
+    if (!player || !playerStorageKey) return;
+    const nextTime = player.currentTime;
+    if (!Number.isFinite(nextTime)) return;
+
+    const nextSecond = Math.floor(nextTime);
+    if (!force && nextSecond === lastSavedPlayerSecond) {
+      return;
+    }
+
+    lastSavedPlayerSecond = nextSecond;
+
+    try {
+      window.localStorage.setItem(playerStorageKey, String(nextTime));
+    } catch (error) {
+    }
+  }
+
+  function restoreStoredPlayerTime() {
+    if (!player) return;
+
+    const storedTime = readStoredPlayerTime();
+    const duration = Number.isFinite(player.duration) ? player.duration : null;
+    const fallbackTime = Number.isFinite(playerDefaultStart) ? playerDefaultStart : 0;
+    let nextTime = storedTime;
+
+    if (nextTime === null) {
+      nextTime = fallbackTime;
+    }
+
+    if (!Number.isFinite(nextTime) || nextTime < 0) {
+      return;
+    }
+
+    if (duration !== null && duration > 0) {
+      nextTime = Math.min(nextTime, Math.max(0, duration - 0.25));
+    }
+
+    player.currentTime = nextTime;
+    lastSavedPlayerSecond = Math.floor(nextTime);
+  }
+
+  if (player) {
+    if (player.readyState >= 1) {
+      restoreStoredPlayerTime();
+    } else {
+      player.addEventListener('loadedmetadata', restoreStoredPlayerTime, { once: true });
+    }
+
+    player.addEventListener('timeupdate', () => writeStoredPlayerTime(false));
+    player.addEventListener('pause', () => writeStoredPlayerTime(true));
+    player.addEventListener('ended', () => writeStoredPlayerTime(true));
+  }
+
+  const _beforeUnloadHandler = () => writeStoredPlayerTime(true);
+  window.addEventListener('beforeunload', _beforeUnloadHandler);
+
+  _modules['viewer-panel-interactions'] = {
+    destroy: function () {
+      window.removeEventListener('beforeunload', _beforeUnloadHandler);
+    },
+  };
+
+  function applySyncState(nextLinked) {
+    const nextValue = nextLinked ? '1' : '0';
+    syncButtons.forEach((btn) => {
+      btn.setAttribute('data-sync-linked', nextValue);
+      const linkIcon = btn.querySelector('.sync-icon-link');
+      const unlinkIcon = btn.querySelector('.sync-icon-unlink');
+      const label = btn.querySelector('.sync-label');
+      if (linkIcon) linkIcon.classList.toggle('hidden', !nextLinked);
+      if (unlinkIcon) unlinkIcon.classList.toggle('hidden', nextLinked);
+      if (label) label.textContent = nextLinked ? 'Link' : 'Unlink';
+    });
+
+    if (syncRoot) {
+      syncRoot.setAttribute('data-sync-linked', nextValue);
+      if (!nextLinked) {
+        syncRoot.querySelectorAll('[data-start][data-end]').forEach((el) => {
+          el.classList.remove('bg-indigo-50');
+        });
+      }
+    }
+  }
+
+  syncButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const currentlyLinked = button.getAttribute('data-sync-linked') !== '0';
+      applySyncState(!currentlyLinked);
+    });
+  });
+
+  function applyStarFilterState(nextFiltered) {
+    const nextValue = nextFiltered ? '1' : '0';
+    starFilterButtons.forEach((btn) => {
+      btn.setAttribute('data-star-filtered', nextValue);
+      const iconOff = btn.querySelector('.star-icon-off');
+      const iconOn = btn.querySelector('.star-icon-on');
+      if (iconOff) iconOff.classList.toggle('hidden', nextFiltered);
+      if (iconOn) iconOn.classList.toggle('hidden', !nextFiltered);
+      btn.classList.toggle('text-amber-500', nextFiltered);
+      btn.classList.toggle('text-slate-500', !nextFiltered);
+    });
+
+    if (!syncRoot) return;
+    syncRoot.querySelectorAll('[data-segment-item="1"]').forEach((item) => {
+      const isBookmarked = item.getAttribute('data-segment-bookmarked') === '1';
+      item.classList.toggle('hidden', nextFiltered && !isBookmarked);
+    });
+  }
+
+  starFilterButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const currentlyFiltered = button.getAttribute('data-star-filtered') === '1';
+      applyStarFilterState(!currentlyFiltered);
+    });
+  });
+
+  const autoUnlinkOnUserScroll = () => {
+    const currentlyLinked = syncRoot ? syncRoot.getAttribute('data-sync-linked') !== '0' : true;
+    if (currentlyLinked) {
+      applySyncState(false);
+    }
+  };
+
+  if (contentPane) {
+    contentPane.addEventListener('wheel', autoUnlinkOnUserScroll, { passive: true });
+    contentPane.addEventListener('touchmove', autoUnlinkOnUserScroll, { passive: true });
+  }
+
+  if (!indexPane || !contentPane) return;
+
+  const links = indexPane.querySelectorAll('a[href^="#topic-"]');
+  links.forEach((link) => {
+    link.addEventListener('click', (event) => {
+      const targetSelector = link.getAttribute('href');
+      if (!targetSelector) return;
+      const target = document.querySelector(targetSelector);
+      if (!target) return;
+
+      event.preventDefault();
+      applySyncState(false);
+      const stickyOffset = stickyPlayer ? stickyPlayer.offsetHeight + 12 : 12;
+
+      const targetTopInPane = target.offsetTop - contentPane.offsetTop;
+      const desiredScrollTop = Math.max(0, targetTopInPane - stickyOffset);
+      contentPane.scrollTo({ top: desiredScrollTop, behavior: 'smooth' });
+
+      history.replaceState(null, '', targetSelector);
+    });
+  });
+})();
+</script>

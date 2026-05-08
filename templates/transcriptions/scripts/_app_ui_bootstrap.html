@@ -1,0 +1,25 @@
+<script data-module="app-ui-bootstrap">
+(function () {
+  const appUi = (window.appUi = window.appUi || {});
+
+  appUi.emitAjaxError = function (message) {
+    const errorMessage = message || 'Erreur backend.';
+    window.dispatchEvent(new CustomEvent('app:ajax-error', {
+      detail: { message: errorMessage },
+    }));
+  };
+
+  appUi.buildAjaxErrorMessage = async function (response, baseMessage) {
+    let backendMessage = '';
+    try {
+      const payload = await response.clone().json();
+      backendMessage = payload && payload.error ? String(payload.error) : '';
+    } catch (error) {
+    }
+
+    const prefix = baseMessage || 'Erreur backend';
+    const details = backendMessage ? `: ${backendMessage}` : '';
+    return `${prefix} (HTTP ${response.status}${details})`;
+  };
+})();
+</script>

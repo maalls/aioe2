@@ -3,13 +3,38 @@
 {% block title %}Transcription Viewer{% endblock %}
 
 {% block content %}
-  <div x-data="{ loading: false }" class="-mt-8 -mx-4 sm:-mx-6 lg:-mx-8">
+  <div x-data="{ loading: false, errorMessage: '' }" class="-mt-8 -mx-4 sm:-mx-6 lg:-mx-8">
     <div x-show="loading" x-cloak class="mb-4">
       <p class="text-sm text-brand-slate">Chargement de la transcription...</p>
     </div>
 
-    <div id="viewer-panel">
+    <div
+      x-show="errorMessage"
+      x-cloak
+      class="mb-4 border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800"
+      role="alert"
+    >
+      <div class="flex items-start justify-between gap-3">
+        <p x-text="errorMessage"></p>
+        <button
+          type="button"
+          class="shrink-0 text-rose-700 hover:text-rose-900"
+          @click="errorMessage = ''"
+          aria-label="Fermer"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <div
+      id="viewer-panel"
+      @htmx:responseError.window="errorMessage = 'Erreur backend: impossible de charger la vue.'"
+      @htmx:sendError.window="errorMessage = 'Erreur reseau: requete HTMX echouee.'"
+      @app:ajax-error.window="errorMessage = ($event.detail && $event.detail.message) ? $event.detail.message : 'Erreur backend.'"
+    >
       {% include "transcriptions/_viewer_panel.html" with selected_folder=selected_folder folder_data=folder_data folders=folders %}
     </div>
   </div>
+  {% include "transcriptions/scripts/_app_ui_bootstrap.html" %}
 {% endblock %}

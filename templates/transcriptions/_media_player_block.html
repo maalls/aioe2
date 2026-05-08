@@ -1,0 +1,45 @@
+<section data-component="media-player">
+  {% if folder_data.preview_video_file %}
+    <div class="mt-4 overflow-hidden">
+      <style>
+        video::cue { font-size: 1.25rem; line-height: 1.4; }
+      </style>
+      <video
+        id="preview-player"
+        controls
+        preload="metadata"
+        class="h-48 w-full bg-black object-contain"
+        data-player-storage-key="transcription-player:{{ selected_folder }}"
+        data-player-default-start="{{ folder_data.segments.0.start|default:0 }}"
+      >
+        <source src="{% url 'transcription-asset' selected_folder folder_data.preview_video_file %}" type="video/mp4">
+        {% if folder_data.preview_vtt_file %}
+          <track
+            src="{% url 'transcription-asset' selected_folder folder_data.preview_vtt_file %}"
+            kind="subtitles"
+            srclang="fr"
+            label="Sous-titres"
+            default
+          >
+        {% endif %}
+      </video>
+    </div>
+    {% include "transcriptions/_sync_star_controls.html" %}
+  {% elif folder_data.preview_audio_file %}
+    <div class="mt-4 bg-slate-50 p-4">
+      <audio
+        id="preview-player"
+        controls
+        preload="metadata"
+        class="w-full"
+        data-player-storage-key="transcription-player:{{ selected_folder }}"
+        data-player-default-start="{{ folder_data.segments.0.start|default:0 }}"
+      >
+        <source src="{% url 'transcription-asset' selected_folder folder_data.preview_audio_file %}" type="audio/mpeg">
+      </audio>
+    </div>
+    {% include "transcriptions/_sync_star_controls.html" %}
+  {% else %}
+    <p class="mt-3 text-sm text-slate-500">Assets média non disponibles pour ce dossier.</p>
+  {% endif %}
+</section>
