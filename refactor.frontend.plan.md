@@ -145,7 +145,7 @@ Definition de done Sprint C:
 ### Sprint D - Performance et hardening [EN COURS]
 1. [x] Optimiser detection segment actif (moins de scan global).
 2. [x] Ajouter checks de robustesse DOM (guards explicites).
-3. [~] Ajouter tests Playwright des parcours critiques (sync/filter/bookmark/seek/edit) - scaffold smoke test ajoute, parcours critiques a etendre.
+3. [~] Ajouter tests Playwright des parcours critiques (sync/filter/bookmark/seek/edit) - 6 scenarios ecrits, execution conditionnee a l'installation Playwright/Chromium.
 4. [ ] Nettoyage final et documentation architecture frontend.
 
 Definition de done Sprint D:
@@ -172,7 +172,7 @@ Definition de done Sprint D:
 - [x] Edition inline texte/speaker/topic/subtopic
 - [x] Supprimer fallback table legacy de _segments_table.html
 - [x] Ajouter guards DOM explicites sur scripts critiques
-- [~] Ajouter tests Playwright parcours critiques (Sprint D) - smoke test initialise
+- [~] Ajouter tests Playwright parcours critiques (Sprint D) - 6 scenarios implementes, execution runtime pending
 - [x] Documenter contrat data-attributes (tests de contrat data-* sur _segments_table)
 
 ## KPIs de succes
