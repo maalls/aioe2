@@ -1,6 +1,7 @@
 import json
 import mimetypes
 import hashlib
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -15,6 +16,16 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 from rest_framework import generics
 
+from .edits import (
+    append_edit_history,
+    apply_edit_segment_text,
+    apply_rename_speaker,
+    apply_rename_subtopic,
+    apply_rename_topic,
+    build_edited_state,
+    read_edited_state,
+    write_edited_state,
+)
 from .models import TranscriptionJob
 from .serializers import TranscriptionJobCreateSerializer, TranscriptionJobDetailSerializer
 from .tasks import run_transcription_task
@@ -133,6 +144,129 @@ def transcription_bookmark_toggle(request, folder: str):
     return JsonResponse({"ok": True, "segment_key": segment_key, "bookmarked": bookmarked})
 
 
+@require_POST
+def transcription_edit_segment_text(request, folder: str, segment_key: str):
+    folder_path = _resolve_folder_path(folder)
+    payload = _read_request_json(request)
+
+    text = str(payload.get("text", "")).strip()
+    if not text:
+        return JsonResponse({"ok": False, "error": "Missing text"}, status=400)
+
+    state = _load_or_init_edited_state(folder_path)
+    try:
+        updated = apply_edit_segment_text(state, segment_key, text)
+    except KeyError:
+        return JsonResponse({"ok": False, "error": "Unknown segment_key"}, status=404)
+
+    write_edited_state(folder_path, updated)
+    append_edit_history(
+        folder_path,
+        {
+            "id": f"op_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
+            "type": "edit_segment_text",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "before": {"segment_key": segment_key},
+            "after": {"segment_key": segment_key, "text": text},
+        },
+    )
+    return JsonResponse({"ok": True})
+
+
+@require_POST
+def transcription_edit_speaker_rename(request, folder: str, speaker_id: str):
+    folder_path = _resolve_folder_path(folder)
+    payload = _read_request_json(request)
+
+    label = str(payload.get("label", "")).strip()
+    if not label:
+        return JsonResponse({"ok": False, "error": "Missing label"}, status=400)
+
+    state = _load_or_init_edited_state(folder_path)
+    try:
+        updated = apply_rename_speaker(state, speaker_id, label)
+    except KeyError:
+        return JsonResponse({"ok": False, "error": "Unknown speaker_id"}, status=404)
+
+    write_edited_state(folder_path, updated)
+    append_edit_history(
+        folder_path,
+        {
+            "id": f"op_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
+            "type": "rename_speaker",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "before": {"speaker_id": speaker_id},
+            "after": {"speaker_id": speaker_id, "label": label},
+        },
+    )
+    return JsonResponse({"ok": True})
+
+
+@require_POST
+def transcription_edit_topic_rename(request, folder: str, topic_id: int):
+    folder_path = _resolve_folder_path(folder)
+    payload = _read_request_json(request)
+
+    title = str(payload.get("title", "")).strip()
+    if not title:
+        return JsonResponse({"ok": False, "error": "Missing title"}, status=400)
+
+    state = _load_or_init_edited_state(folder_path)
+    try:
+        updated = apply_rename_topic(state, topic_id, title)
+    except IndexError:
+        return JsonResponse({"ok": False, "error": "Unknown topic_id"}, status=404)
+
+    write_edited_state(folder_path, updated)
+    append_edit_history(
+        folder_path,
+        {
+            "id": f"op_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
+            "type": "rename_topic",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "before": {"topic_id": topic_id},
+            "after": {"topic_id": topic_id, "title": title},
+        },
+    )
+    return JsonResponse({"ok": True})
+
+
+@require_POST
+def transcription_edit_subtopic_rename(request, folder: str, subtopic_id: str):
+    folder_path = _resolve_folder_path(folder)
+    payload = _read_request_json(request)
+
+    title = str(payload.get("title", "")).strip()
+    if not title:
+        return JsonResponse({"ok": False, "error": "Missing title"}, status=400)
+
+    try:
+        topic_raw, subtopic_raw = subtopic_id.split(".", 1)
+        topic_index = int(topic_raw)
+        subtopic_index = int(subtopic_raw)
+    except (ValueError, AttributeError):
+        return JsonResponse({"ok": False, "error": "Invalid subtopic_id"}, status=400)
+
+    state = _load_or_init_edited_state(folder_path)
+    try:
+        updated = apply_rename_subtopic(state, topic_index, subtopic_index, title)
+    except IndexError:
+        return JsonResponse({"ok": False, "error": "Unknown subtopic_id"}, status=404)
+
+    write_edited_state(folder_path, updated)
+    append_edit_history(
+        folder_path,
+        {
+            "id": f"op_{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S%f')}",
+            "type": "rename_subtopic",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "before": {"subtopic_id": subtopic_id},
+            "after": {"subtopic_id": subtopic_id, "title": title},
+        },
+    )
+    return JsonResponse({"ok": True})
+
+
 def _range_response(*, asset_path: Path, content_type: str | None, range_header: str) -> HttpResponse:
     file_size = asset_path.stat().st_size
     start, end = _parse_range_header(range_header=range_header, file_size=file_size)
@@ -203,21 +337,12 @@ def _load_folder_data(folder_name: str) -> dict:
         raise Http404("Unknown output folder")
 
     folder_path = output_root / folder_name
-    json_files = sorted(
-        [
-            file
-            for file in folder_path.glob("*.json")
-            if file.name != "run_report.json"
-            and ".timeline" not in file.name
-        ]
-    )
     report_path = folder_path / "run_report.json"
+
+    # Ensure edited.json exists and use it as the single source of truth for segments/speakers.
+    payload = _load_or_init_edited_state(folder_path)
     timeline_path, timeline_data = _load_timeline_report(folder_path)
     bookmarked_keys = _read_segment_bookmarks(folder_path)
-
-    payload = {}
-    if json_files:
-        payload = _read_json(json_files[0])
 
     report = _read_json(report_path) if report_path.exists() else {}
     segments = payload.get("segments", [])
@@ -277,6 +402,7 @@ def _load_folder_data(folder_name: str) -> dict:
 
 def _load_timeline_report(folder_path: Path) -> tuple[Path | None, dict]:
     candidates = [
+        folder_path / "edited.json",
         *sorted(folder_path.glob("*.timeline.deep.json")),
         *sorted(folder_path.glob("*.timeline.json")),
     ]
@@ -515,3 +641,43 @@ def _write_segment_bookmarks(folder_path: Path, bookmarks: set[str]) -> None:
     path = _bookmarks_file_path(folder_path)
     payload = {"bookmarked_segment_keys": sorted(bookmarks)}
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _resolve_folder_path(folder: str) -> Path:
+    output_root = Path(settings.TRANSCRIPTION_OUTPUT_ROOT)
+    available_folders = {item["name"] for item in _list_output_folders()}
+    if folder not in available_folders:
+        raise Http404("Unknown output folder")
+    return output_root / folder
+
+
+def _read_request_json(request) -> dict:
+    try:
+        payload = json.loads(request.body.decode("utf-8")) if request.body else {}
+    except json.JSONDecodeError:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _load_source_payload(folder_path: Path) -> dict:
+    json_files = sorted(
+        [
+            file
+            for file in folder_path.glob("*.json")
+            if file.name not in {"run_report.json", "edited.json", "segment_edits_history.json"}
+            and ".timeline" not in file.name
+        ]
+    )
+    return _read_json(json_files[0]) if json_files else {}
+
+
+def _load_or_init_edited_state(folder_path: Path) -> dict:
+    existing = read_edited_state(folder_path)
+    if existing is not None:
+        return existing
+
+    segments_payload = _load_source_payload(folder_path)
+    _, timeline_data = _load_timeline_report(folder_path)
+    state = build_edited_state(segments_payload, timeline_data)
+    write_edited_state(folder_path, state)
+    return state
