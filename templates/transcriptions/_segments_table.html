@@ -32,9 +32,8 @@
                 x-data="{ editing: false, saving: false, val: '{{ topic.title|escapejs }}', snap: '{{ topic.title|escapejs }}', url: '{% url 'transcription-edit-topic-rename' folder_data.folder_name topic.index %}' }"
                 class="text-base font-semibold text-slate-900"
               >
-                <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.topicInp.focus())" class="cursor-text" title="Double-clic pour renommer">
+                <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.topicInp.focus())" class="cursor-pointer" title="Double-clic pour renommer">
                   <span x-text="'{{ topic.index }}. ' + val"></span>
-                  <i class="fa-regular fa-pen-to-square ml-1 text-[10px] text-slate-300 hover:text-slate-500 transition-colors"></i>
                 </span>
                 <input
                   x-ref="topicInp"
@@ -64,9 +63,8 @@
                     x-data="{ editing: false, saving: false, val: '{{ sub.title|escapejs }}', snap: '{{ sub.title|escapejs }}', url: '{% url 'transcription-edit-subtopic-rename' folder_data.folder_name subtopic_id %}' }"
                     class="text-sm font-semibold text-slate-800"
                   >
-                    <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.subInp.focus())" class="cursor-text" title="Double-clic pour renommer">
+                    <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.subInp.focus())" class="cursor-pointer" title="Double-clic pour renommer">
                       <span x-text="'{{ topic.index }}.{{ sub.index }} ' + val"></span>
-                      <i class="fa-regular fa-pen-to-square ml-1 text-[10px] text-slate-300 hover:text-slate-500 transition-colors"></i>
                     </span>
                     <input
                       x-ref="subInp"
@@ -114,9 +112,8 @@
                         @click.stop
                         title="Double-clic pour renommer le speaker"
                       >
-                        <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.spkInp.focus())" class="cursor-text">
+                        <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.spkInp.focus())" class="cursor-pointer">
                           <span x-text="val"></span>
-                          <i class="fa-regular fa-pen-to-square ml-0.5 text-[9px] text-slate-300 hover:text-slate-500 transition-colors"></i>
                         </span>
                         <input
                           x-ref="spkInp"
@@ -135,9 +132,8 @@
                         @click.stop
                         title="Double-clic pour editer le texte"
                       >
-                        <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.txtInp.focus())" class="cursor-text">
+                        <span x-show="!editing" @dblclick.stop="editing = true; $nextTick(() => $refs.txtInp.focus())" class="cursor-pointer">
                           <span x-text="val"></span>
-                          <i class="fa-regular fa-pen-to-square ml-0.5 text-[9px] text-slate-300 hover:text-slate-500 transition-colors"></i>
                         </span>
                         <textarea
                           x-ref="txtInp"
