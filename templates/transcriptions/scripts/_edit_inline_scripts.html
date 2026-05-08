@@ -6,7 +6,6 @@
     _modules['edit-inline-interactions'].destroy();
     delete _modules['edit-inline-interactions'];
   }
-  _modules['edit-inline-interactions'] = { destroy: function () {} };
 
   function getCsrfToken() {
     const el = document.querySelector('[data-csrf-token]');
@@ -17,6 +16,10 @@
   }
 
   async function saveField(url, fieldName, value) {
+    if (!url || !fieldName) {
+      throw new Error('Configuration edition invalide.');
+    }
+
     const body = {};
     body[fieldName] = value;
     const response = await fetch(url, {
@@ -38,14 +41,27 @@
       }
       throw new Error(message);
     }
-    return response.json();
+    try {
+      return await response.json();
+    } catch (error) {
+      return { ok: true };
+    }
   }
 
-  window.appEdits = {
+  const api = {
     saveSegmentText: function (url, text)  { return saveField(url, 'text',  text);  },
     saveSpeaker:     function (url, label) { return saveField(url, 'label', label); },
     saveTopic:       function (url, title) { return saveField(url, 'title', title); },
     saveSubtopic:    function (url, title) { return saveField(url, 'title', title); },
+  };
+
+  window.appEdits = api;
+  _modules['edit-inline-interactions'] = {
+    destroy: function () {
+      if (window.appEdits === api) {
+        delete window.appEdits;
+      }
+    },
   };
 })();
 </script>
