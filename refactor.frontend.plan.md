@@ -6,7 +6,8 @@ Rendre le frontend plus modulaire, plus testable, et moins fragile face aux chan
 ## Avancement
 - Sprint A [done]: extraction partials templates, tests de rendu verts (53 tests).
 - Sprint B [done]: scripts migres vers includes modules, lifecycle init/destroy via window.__htmxModules, tests rendu lifecycle verts.
-- Sprint C [en cours]: edition inline (texte/speaker/topic/subtopic) — backend prêt, frontend a connecter.
+- Sprint C [done]: edition inline (texte/speaker/topic/subtopic) connectee aux endpoints + tests de rendu.
+- Sprint D [en cours]: suppression fallback table legacy + hardening/perf + tests interaction navigateur.
 
 ## Constat (audit)
 
@@ -87,7 +88,7 @@ Cas minimaux:
 - video + timeline
 - audio + timeline
 - no-media + timeline
-- fallback table sans timeline
+- message vide si timeline_groups absent
 - presence des controles sync/star
 
 ### 2. Tests interaction navigateur (Playwright)
@@ -129,22 +130,23 @@ Definition de done Sprint B:
 - pas de double binding apres swaps ✓
 - tests rendu lifecycle verts ✓
 
-### Sprint C - Edition inline robuste [EN COURS]
-1. [ ] UI inline edit segment texte dans _segments_table.html.
-2. [ ] UI inline rename speaker dans _segments_table.html.
-3. [ ] UI inline rename topic/subtopic dans les headers.
-4. [ ] Module _edit_inline_scripts.html (fetch + CSRF + appUi.emitAjaxError).
-5. [ ] Tests de rendu pour presence des data-attributes edition.
+### Sprint C - Edition inline robuste [DONE]
+1. [x] UI inline edit segment texte dans _segments_table.html.
+2. [x] UI inline rename speaker dans _segments_table.html.
+3. [x] UI inline rename topic/subtopic dans les headers.
+4. [x] Module _edit_inline_scripts.html (fetch + CSRF + appUi.emitAjaxError).
+5. [x] Tests de rendu pour presence des data-attributes edition.
 
 Definition de done Sprint C:
-- edition inline stable
-- persistance validee via edited.json
-- tests rendu edition verts
+- edition inline stable ✓
+- persistance validee via edited.json ✓
+- tests rendu edition verts ✓
 
-### Sprint D - Performance et hardening
-1. Optimiser detection segment actif (moins de scan global).
-2. Ajouter checks de robustesse DOM (guards explicites).
-3. Nettoyage final et documentation architecture frontend.
+### Sprint D - Performance et hardening [EN COURS]
+1. [x] Optimiser detection segment actif (moins de scan global).
+2. [ ] Ajouter checks de robustesse DOM (guards explicites).
+3. [ ] Ajouter tests Playwright des parcours critiques (sync/filter/bookmark/seek/edit).
+4. [ ] Nettoyage final et documentation architecture frontend.
 
 Definition de done Sprint D:
 - fluidite correcte sur longues transcriptions
@@ -167,7 +169,8 @@ Definition de done Sprint D:
 - [x] Ajouter tests unitaires de rendu templates (53 passants)
 - [x] Migrer scripts inline vers modules includes
 - [x] Implementer bootstrap init/destroy compatible HTMX
-- [ ] Edition inline texte/speaker/topic/subtopic
+- [x] Edition inline texte/speaker/topic/subtopic
+- [x] Supprimer fallback table legacy de _segments_table.html
 - [ ] Ajouter tests Playwright parcours critiques (Sprint D)
 - [~] Documenter contrat data-attributes
 
